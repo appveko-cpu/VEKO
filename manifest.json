@@ -1,0 +1,22 @@
+{
+  "name": "VEKO - La vision de ce que vous gagnez vraiment",
+  "short_name": "VEKO",
+  "description": "Application de gestion de ventes et suivi de rentabilite",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0f1e",
+  "theme_color": "#0a0f1e",
+  "lang": "fr",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='40' fill='%238b5cf6'/><text x='96' y='130' font-family='Arial' font-size='100' font-weight='900' fill='white' text-anchor='middle'>V</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["finance", "business"],
+  "prefer_related_applications": false
+}
