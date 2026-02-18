@@ -983,6 +983,7 @@ function initApp() {
     updateMicroBadge();
     updateActivityRing();
     updateProfileDropdown();
+    updateProgression();
     
     showTab('dashboard');
     
@@ -1770,6 +1771,7 @@ function changerTypeProjet(type) {
 }
 
 function openModalProjet() {
+    projetEnCoursEdition = null;
     document.getElementById('modalProjet').style.display = 'block';
     document.getElementById('projetNom').value = '';
     document.getElementById('projetPrixVente').value = '';
@@ -1850,7 +1852,14 @@ function sauvegarderProjet() {
         };
     }
     
-    projets.push(projet);
+    if (projetEnCoursEdition) {
+        projet.id = projetEnCoursEdition;
+        const idx = projets.findIndex(p => p.id === projetEnCoursEdition);
+        if (idx !== -1) projets[idx] = projet; else projets.push(projet);
+        projetEnCoursEdition = null;
+    } else {
+        projets.push(projet);
+    }
     sauvegarderDonnees();
     
     hapticFeedback();
@@ -1859,6 +1868,7 @@ function sauvegarderProjet() {
     updateSelectProjet();
     updateChartProduitSelect();
     afficherNotification('Produit ajoute: ' + nom, 'success');
+    setTimeout(() => showFelicitation('Nouveau produit ajoute !'), 300);
 }
 
 function afficherProjets() {
@@ -1908,6 +1918,9 @@ function afficherProjets() {
                     </div>
                     <button onclick="supprimerProjet(${p.id})" style="padding: 6px 12px; background: var(--accent-red); color: white; border: none; border-radius: 6px; font-size: 10px; font-weight: 600; cursor: pointer;">
                         <i class="fas fa-trash"></i>
+                    </button>
+                    <button onclick="ouvrirModifierProjet(${p.id})" style="padding: 6px 12px; background: var(--accent-blue); color: white; border: none; border-radius: 6px; font-size: 10px; font-weight: 600; cursor: pointer; margin-left: 4px;">
+                        <i class="fas fa-pencil-alt"></i>
                     </button>
                 </div>
             </div>
@@ -2204,6 +2217,20 @@ function enregistrerVente() {
     
     afficherNotification('Vente enregistree !', 'success');
     
+    const nbVentesTotal = ventes.filter(v => !v.retournee).length;
+    if (nbVentesTotal === 1) {
+        setTimeout(() => showFelicitation('Premiere vente enregistree ! Vous avez debloque la categorie Bronze. Continuez pour progresser !'), 500);
+    } else {
+        setTimeout(() => showFelicitation('Bravo ! Commande enregistree avec succes.'), 300);
+    }
+    updateProgression();
+    try { afficherClients(); } catch(e) {}
+    try { chargerDashboard(); } catch(e) {}
+    try { afficherHistorique(); } catch(e) {}
+    try { updateActivityRing(); } catch(e) {}
+    try { updateMicroBadge(); } catch(e) {}
+    try { afficherProjets(); } catch(e) {}
+    
     document.getElementById('nomClient').value = '';
     document.getElementById('telClient').value = '';
     document.getElementById('nbPiecesCommande').value = '';
@@ -2294,9 +2321,12 @@ function afficherHistorique() {
         ventesFiltrees = ventesFiltrees.filter(v => {
             const nom = (v.nomClient || '').toLowerCase();
             const tel = (v.telClient || '').toLowerCase();
-            return nom.includes(searchVal) || tel.includes(searchVal);
+            const produit = (v.projetNom || '').toLowerCase();
+            return nom.includes(searchVal) || tel.includes(searchVal) || produit.includes(searchVal);
         });
     }
+    
+    updateSearchSuggestions();
     
     const filtreProduit = document.getElementById('filtreProduit')?.value || '';
     if (filtreProduit) {
@@ -2389,7 +2419,7 @@ function afficherHistorique() {
         const couleur = getCouleurBenefice(v.benefice, v.ca);
         
         html += `
-            <div class="commande-item" style="border-left: 4px solid ${couleur.color};">
+            <div class="commande-item" style="border-left: 4px solid ${couleur.color}; cursor: pointer;" onclick="toggleCommandeDetails(${v.id})">
                 <div class="commande-header">
                     <div>
                         <span class="commande-date">${dateStr}${provisoireTag}${projetTag}</span>
@@ -2397,26 +2427,35 @@ function afficherHistorique() {
                             <i class="fas fa-user" style="font-size: 10px;"></i> ${nomClient}
                         </div>
                     </div>
-                    <div>
-                        <div class="commande-benefice" style="color: ${couleur.color};">
-                            ${couleur.emoji} ${Math.round(v.benefice).toLocaleString()} ${deviseActuelle}
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div>
+                            <div class="commande-benefice" style="color: ${couleur.color};">
+                                ${couleur.emoji} ${Math.round(v.benefice).toLocaleString()} ${deviseActuelle}
+                            </div>
+                            <div style="font-size: 9px; color: ${couleur.color}; font-weight: 700; text-align: right; margin-top: 2px;">
+                                ${couleur.label}
+                            </div>
                         </div>
-                        <div style="font-size: 9px; color: ${couleur.color}; font-weight: 700; text-align: right; margin-top: 2px;">
-                            ${couleur.label}
-                        </div>
+                        <i class="fas fa-chevron-down" style="color: var(--text-muted); font-size: 10px;"></i>
                     </div>
                 </div>
-                <div class="commande-details">
-                    <strong>${v.nbPieces} piece(s)</strong> vendues a <strong>${v.prixVenteUnit.toLocaleString()} ${deviseActuelle}</strong><br>
-                    CA: ${Math.round(v.ca).toLocaleString()} ${deviseActuelle} | Depenses: ${Math.round(v.depensesTotales).toLocaleString()} ${deviseActuelle}
-                </div>
-                <div style="margin-top: 10px; display: flex; gap: 8px;">
-                    <button onclick="marquerRetournee(${v.id})" style="padding: 6px 12px; background: var(--accent-orange); color: white; border: none; border-radius: 6px; font-size: 10px; font-weight: 600; cursor: pointer;">
-                        <i class="fas fa-undo"></i> Retournee
-                    </button>
-                    <button onclick="supprimerVente(${v.id})" style="padding: 6px 12px; background: var(--accent-red); color: white; border: none; border-radius: 6px; font-size: 10px; font-weight: 600; cursor: pointer;">
-                        <i class="fas fa-trash"></i> Supprimer
-                    </button>
+                <div id="cmd-details-${v.id}" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--diamond-border);">
+                    <div class="commande-details">
+                        <strong>${v.nbPieces} piece(s)</strong> vendues a <strong>${v.prixVenteUnit.toLocaleString()} ${deviseActuelle}</strong><br>
+                        CA: ${Math.round(v.ca).toLocaleString()} ${deviseActuelle} | Depenses: ${Math.round(v.depensesTotales).toLocaleString()} ${deviseActuelle}
+                        ${v.telClient ? '<br><i class="fas fa-phone" style="font-size: 10px;"></i> ' + v.telClient : ''}
+                        ${v.budgetPub > 0 ? '<br>Pub: ' + Math.round(v.budgetPub).toLocaleString() + ' ' + deviseActuelle : ''}
+                        ${v.fraisLivraisonClient > 0 ? '<br>Livraison: ' + Math.round(v.fraisLivraisonClient).toLocaleString() + ' ' + deviseActuelle : ''}
+                        ${v.commissionTotale > 0 ? '<br>Commission: ' + Math.round(v.commissionTotale).toLocaleString() + ' ' + deviseActuelle : ''}
+                    </div>
+                    <div style="margin-top: 10px; display: flex; gap: 8px;" onclick="event.stopPropagation()">
+                        <button onclick="marquerRetournee(${v.id})" style="padding: 6px 12px; background: var(--accent-orange); color: white; border: none; border-radius: 6px; font-size: 10px; font-weight: 600; cursor: pointer;">
+                            <i class="fas fa-undo"></i> Retournee
+                        </button>
+                        <button onclick="supprimerVente(${v.id})" style="padding: 6px 12px; background: var(--accent-red); color: white; border: none; border-radius: 6px; font-size: 10px; font-weight: 600; cursor: pointer;">
+                            <i class="fas fa-trash"></i> Supprimer
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
@@ -4932,5 +4971,230 @@ function openModalConfidentialite() {
 function closeModalConfidentialite() {
     const m = document.getElementById('modalConfidentialite');
     if (m) { m.classList.add('hidden'); m.style.display = 'none'; }
+}
+
+// ============================================
+// TOGGLE FILTRES DATES
+// ============================================
+function toggleFiltresDates() {
+    const el = document.getElementById('filtresDatesCustom');
+    if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function resetFiltresCommandes() {
+    const dd = document.getElementById('filtreeDateDebut');
+    const df = document.getElementById('filtreeDateFin');
+    const fp = document.getElementById('filtreProduit');
+    const sc = document.getElementById('searchClient');
+    if (dd) dd.value = '';
+    if (df) df.value = '';
+    if (fp) fp.value = '';
+    if (sc) sc.value = '';
+    afficherHistorique();
+}
+
+function updateFiltreProduit() {
+    const select = document.getElementById('filtreProduit');
+    if (!select) return;
+    const current = select.value;
+    const nomsUniques = [...new Set(ventes.filter(v => v.projetNom).map(v => v.projetNom))];
+    select.innerHTML = '<option value="">Tous les produits</option>';
+    nomsUniques.forEach(nom => {
+        select.innerHTML += '<option value="' + nom + '">' + nom + '</option>';
+    });
+    select.value = current;
+}
+
+// ============================================
+// SEARCH SUGGESTIONS
+// ============================================
+function updateSearchSuggestions() {
+    const searchVal = (document.getElementById('searchClient')?.value || '').trim().toLowerCase();
+    const container = document.getElementById('searchSuggestions');
+    if (!container) return;
+    
+    if (searchVal.length < 2) { container.style.display = 'none'; return; }
+    
+    const noms = [...new Set(ventes.map(v => v.nomClient).filter(n => n && n !== 'Client' && n.toLowerCase().includes(searchVal)))];
+    const tels = [...new Set(ventes.map(v => v.telClient).filter(t => t && t.includes(searchVal)))];
+    const produits = [...new Set(ventes.map(v => v.projetNom).filter(p => p && p.toLowerCase().includes(searchVal)))];
+    
+    const all = [...noms.map(n => ({label: n, icon: 'fa-user'})), ...tels.map(t => ({label: t, icon: 'fa-phone'})), ...produits.map(p => ({label: p, icon: 'fa-box'}))];
+    
+    if (all.length === 0) { container.style.display = 'none'; return; }
+    
+    container.style.display = 'block';
+    container.innerHTML = all.slice(0, 6).map(s => 
+        '<div onclick="document.getElementById(\'searchClient\').value=\'' + s.label.replace(/'/g, "\\'") + '\'; afficherHistorique(); document.getElementById(\'searchSuggestions\').style.display=\'none\';" style="padding: 8px; cursor: pointer; font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; border-radius: 6px;" onmouseover="this.style.background=\'var(--glass-bg)\'" onmouseout="this.style.background=\'none\'"><i class="fas ' + s.icon + '" style="color: var(--text-muted); font-size: 10px; width: 16px;"></i>' + s.label + '</div>'
+    ).join('');
+}
+
+// ============================================
+// PAGE CLIENTS
+// ============================================
+function afficherClients() {
+    const container = document.getElementById('listeClients');
+    if (!container) return;
+    
+    const searchVal = (document.getElementById('searchClientPage')?.value || '').trim().toLowerCase();
+    
+    const clientsMap = {};
+    ventes.filter(v => !v.retournee && v.nomClient && v.nomClient !== 'Client').forEach(v => {
+        const key = (v.nomClient || '').toLowerCase();
+        if (!clientsMap[key]) {
+            clientsMap[key] = { nom: v.nomClient, tel: v.telClient || '', commandes: 0, ca: 0, benefice: 0, derniere: v.date };
+        }
+        clientsMap[key].commandes++;
+        clientsMap[key].ca += v.ca;
+        clientsMap[key].benefice += v.benefice;
+        if (new Date(v.date) > new Date(clientsMap[key].derniere)) clientsMap[key].derniere = v.date;
+    });
+    
+    let clients = Object.values(clientsMap).sort((a, b) => new Date(b.derniere) - new Date(a.derniere));
+    
+    if (searchVal) {
+        clients = clients.filter(c => c.nom.toLowerCase().includes(searchVal) || c.tel.includes(searchVal));
+    }
+    
+    if (clients.length === 0) {
+        container.innerHTML = '<div class="empty-state"><i class="fas fa-user-plus"></i><p>Aucun client trouve.</p></div>';
+        return;
+    }
+    
+    container.innerHTML = clients.map(c => {
+        const date = new Date(c.derniere).toLocaleDateString('fr-FR');
+        return '<div style="padding: 14px; background: var(--glass-bg); border: 1px solid var(--diamond-border); border-radius: 14px; margin-bottom: 10px;">' +
+            '<div style="display: flex; justify-content: space-between; align-items: center;">' +
+            '<div><div style="font-weight: 700; color: var(--text-primary); font-size: 14px;"><i class="fas fa-user" style="margin-right: 6px; color: var(--accent-purple);"></i>' + c.nom + '</div>' +
+            (c.tel ? '<div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;"><i class="fas fa-phone" style="margin-right: 4px;"></i>' + c.tel + '</div>' : '') +
+            '</div><div style="text-align: right;"><div style="font-size: 16px; font-weight: 900; color: var(--accent-green);">' + Math.round(c.ca).toLocaleString() + ' ' + deviseActuelle + '</div>' +
+            '<div style="font-size: 10px; color: var(--text-muted);">' + c.commandes + ' commande(s)</div></div></div>' +
+            '<div style="display: flex; justify-content: space-between; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--diamond-border); font-size: 11px; color: var(--text-muted);">' +
+            '<span>Benefice: <strong style="color: var(--accent-green);">' + Math.round(c.benefice).toLocaleString() + ' ' + deviseActuelle + '</strong></span>' +
+            '<span>Dernier achat: ' + date + '</span></div></div>';
+    }).join('');
+}
+
+// ============================================
+// COMMANDES DEPLIABLES
+// ============================================
+function toggleCommandeDetails(id) {
+    const el = document.getElementById('cmd-details-' + id);
+    if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+// ============================================
+// MODIFIER PRODUIT
+// ============================================
+var projetEnCoursEdition = null;
+
+function ouvrirModifierProjet(id) {
+    const projet = projets.find(p => p.id === id);
+    if (!projet) return;
+    
+    projetEnCoursEdition = id;
+    
+    document.getElementById('modalProjet').style.display = 'block';
+    
+    document.getElementById('projetNom').value = projet.nom;
+    document.getElementById('projetPrixVente').value = projet.prixVente || '';
+    
+    if (projet.type === 'production') {
+        changerTypeProjet('production');
+        document.getElementById('projetCoutMatieres').value = projet.coutMatieres || '';
+        document.getElementById('projetCoutMainOeuvre').value = projet.coutMainOeuvre || '';
+        document.getElementById('projetAutresFrais').value = projet.autresFrais || 0;
+        document.getElementById('projetNbProduits').value = projet.nbArticles || '';
+    } else {
+        changerTypeProjet('fournisseur');
+        document.getElementById('projetPrixAchat').value = projet.prixAchat || '';
+        document.getElementById('projetNbArticles').value = projet.nbArticles || '';
+        document.getElementById('projetFraisLivraison').value = projet.fraisLivraison || 0;
+    }
+}
+
+// ============================================
+// PROGRESSION SYSTEM
+// ============================================
+function getVekoPoints() {
+    const nbVentes = ventes.filter(v => !v.retournee).length;
+    let points = 10;
+    points += nbVentes * 10;
+    return points;
+}
+
+function getProgressionLevel(points) {
+    if (points >= 500) return { nom: 'Diamant', next: 999, color: '#06b6d4', border: 'linear-gradient(135deg, #06b6d4, #8b5cf6)' };
+    if (points >= 300) return { nom: 'Platine', next: 500, color: '#a855f7', border: 'linear-gradient(135deg, #a855f7, #ec4899)' };
+    if (points >= 150) return { nom: 'Or', next: 300, color: '#ffd700', border: 'linear-gradient(135deg, #ffd700, #f59e0b)' };
+    if (points >= 50) return { nom: 'Argent', next: 150, color: '#c0c0c0', border: 'linear-gradient(135deg, #c0c0c0, #94a3b8)' };
+    if (points >= 20) return { nom: 'Bronze', next: 50, color: '#cd7f32', border: 'linear-gradient(135deg, #cd7f32, #92400e)' };
+    return { nom: 'Debutant', next: 20, color: '#8b5cf6', border: 'linear-gradient(135deg, #8b5cf6, #ec4899)' };
+}
+
+function updateProgression() {
+    const points = getVekoPoints();
+    const level = getProgressionLevel(points);
+    
+    ['', 'Desktop'].forEach(suffix => {
+        const ptsEl = document.getElementById('progressionPoints' + suffix);
+        const nextEl = document.getElementById('progressionNext' + suffix);
+        const fillEl = document.getElementById('progressionFill' + suffix);
+        
+        if (ptsEl) ptsEl.textContent = points + ' pts';
+        if (nextEl) nextEl.textContent = 'Prochain: ' + level.next + ' pts';
+        if (fillEl) {
+            const prevLevel = getProgressionLevel(points - 1);
+            const prevThreshold = points >= 500 ? 300 : points >= 300 ? 150 : points >= 150 ? 50 : points >= 50 ? 20 : points >= 20 ? 10 : 0;
+            const range = level.next - prevThreshold;
+            const progress = Math.min(100, ((points - prevThreshold) / range) * 100);
+            fillEl.style.width = progress + '%';
+        }
+    });
+    
+    document.querySelectorAll('[id^="btnModeProfil"]').forEach(el => {
+        el.style.border = '2px solid transparent';
+        el.style.borderImage = level.border + ' 1';
+        el.style.borderRadius = '50%';
+        el.style.borderImage = 'none';
+        el.style.borderColor = level.color;
+    });
+}
+
+// ============================================
+// FELICITATION MESSAGES
+// ============================================
+function showFelicitation(message) {
+    const div = document.createElement('div');
+    div.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:linear-gradient(135deg,#8b5cf6,#ec4899);color:white;padding:24px 32px;border-radius:20px;z-index:99999;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.4);animation:felicPop 0.4s ease;max-width:300px;';
+    div.innerHTML = '<div style="font-size:32px;margin-bottom:8px;">&#127881;</div><div style="font-size:15px;font-weight:800;">' + message + '</div>';
+    document.body.appendChild(div);
+    setTimeout(() => { div.style.opacity = '0'; div.style.transition = 'opacity 0.5s'; setTimeout(() => div.remove(), 500); }, 2500);
+}
+
+// ============================================
+// SIDEBAR EXPAND/COLLAPSE LOGO
+// ============================================
+function updateSidebarLogo() {
+    const sidebar = document.querySelector('.desktop-sidebar');
+    if (!sidebar) return;
+    const img = sidebar.querySelector('.sidebar-logo-img');
+    const text = sidebar.querySelector('.sidebar-logo-text');
+    if (!img || !text) return;
+    
+    if (sidebar.classList.contains('expanded') || sidebar.offsetWidth > 80) {
+        img.style.display = 'none';
+        text.style.display = 'block';
+    } else {
+        img.style.display = 'block';
+        text.style.display = 'none';
+    }
+}
+
+const sidebarObserver = new MutationObserver(updateSidebarLogo);
+const sidebarEl = document.querySelector('.desktop-sidebar');
+if (sidebarEl) {
+    sidebarObserver.observe(sidebarEl, { attributes: true, attributeFilter: ['class', 'style'] });
+    new ResizeObserver(updateSidebarLogo).observe(sidebarEl);
 }
 

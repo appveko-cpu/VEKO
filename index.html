@@ -241,7 +241,8 @@
     <!-- DESKTOP SIDEBAR -->
     <div class="desktop-sidebar" style="display: none;">
         <div style="padding: 20px; text-align: center; border-bottom: 1px solid var(--diamond-border); margin-bottom: 20px;">
-            <div style="font-size: 24px; font-weight: 900; background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 3px;">VEKO</div>
+            <img src="web-app-manifest-192x192.png" alt="V" class="sidebar-logo-img" style="width: 36px; height: 36px; border-radius: 10px; display: block; margin: 0 auto;">
+            <div class="sidebar-logo-text" style="font-size: 24px; font-weight: 900; background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 3px; display: none;">VEKO</div>
             <div class="sidebar-slogan" style="font-size: 9px; color: var(--text-muted); margin-top: 6px; opacity: 0; transition: opacity 0.3s; line-height: 1.3;">La vision de ce que<br>vous gagnez vraiment</div>
         </div>
         
@@ -254,29 +255,20 @@
             <span class="nav-text">Calcul</span>
         </div>
         <div class="desktop-nav-item" onclick="showTab('projets')" data-tab="projets">
-            <i class="fas fa-folder"></i>
-            <span class="nav-text">Projets</span>
+            <i class="fas fa-box"></i>
+            <span class="nav-text">Produits</span>
         </div>
         <div class="desktop-nav-item" onclick="showTab('historique')" data-tab="historique">
             <i class="fas fa-receipt"></i>
             <span class="nav-text">Commandes</span>
         </div>
-        <div class="desktop-nav-item" onclick="showTab('simulation')" data-tab="simulation">
-            <i class="fas fa-flask"></i>
-            <span class="nav-text">Laboratoire</span>
-        </div>
         <div class="desktop-nav-item" onclick="showTab('clients')" data-tab="clients">
             <i class="fas fa-users"></i>
             <span class="nav-text">Clients</span>
         </div>
-        
-        <div style="position: absolute; bottom: 20px; left: 0; right: 0; padding: 0 12px;">
-            <button onclick="exporterDonnees()" style="width: 100%; padding: 10px; background: var(--accent-blue); color: white; border: none; border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                <i class="fas fa-download" style="font-size: 16px; min-width: 24px;"></i> <span class="sidebar-btn-text" style="display: none;">Exporter</span>
-            </button>
-            <button onclick="importerDonnees()" style="width: 100%; padding: 10px; background: var(--accent-green); color: white; border: none; border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                <i class="fas fa-upload" style="font-size: 16px; min-width: 24px;"></i> <span class="sidebar-btn-text" style="display: none;">Importer</span>
-            </button>
+        <div class="desktop-nav-item" onclick="showTab('simulation')" data-tab="simulation">
+            <i class="fas fa-flask"></i>
+            <span class="nav-text">Laboratoire</span>
         </div>
     </div>
 
@@ -683,7 +675,7 @@
         <div class="card" id="cardRepartitionCA" style="display: none;">
             <h3 style="font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 16px;">
                 <i class="fas fa-chart-pie" style="color: var(--accent-green); margin-right: 8px;"></i>
-                Repartition CA par Projet
+                Repartition CA par Produit
             </h3>
             <canvas id="chartRepartitionCA" style="max-height: 220px;"></canvas>
         </div>
@@ -728,7 +720,7 @@
             </div>
 
             <div class="input-group">
-                <label class="label">Selectionner un projet existant (optionnel)</label>
+                <label class="label">Selectionner un produit existant (optionnel)</label>
                 <select id="selectProjet" class="input" onchange="chargerProjetDansCalcul()">
                     <option value="">-- Saisie manuelle --</option>
                 </select>
@@ -1503,63 +1495,13 @@
     <!-- PAGE: COMMANDES -->
     <div id="page-historique" class="page">
         
-        <!-- Export PDF -->
-        <div class="card" style="background: var(--gradient-primary); border: none; padding: 18px;">
-            <button onclick="genererRapportPDF()" style="width: 100%; background: white; color: var(--accent-blue); border: none; padding: 14px; border-radius: 12px; font-weight: 700; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
-                <i class="fas fa-file-pdf" style="font-size: 18px;"></i>
-                Generer mon Rapport CEO
-            </button>
-            <div style="font-size: 11px; color: white; opacity: 0.9; text-align: center; margin-top: 10px;">
-                Exportez vos statistiques en PDF professionnel
+        <!-- Recherche -->
+        <div class="card" style="padding: 14px 16px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-search" style="color: var(--text-muted); font-size: 14px;"></i>
+                <input type="text" id="searchClient" class="input" placeholder="Recherche : nom, telephone, produit..." oninput="afficherHistorique()" style="margin: 0; border: none; background: none; padding: 8px 0; flex: 1;">
             </div>
-        </div>
-
-        <!-- Recherche client -->
-        <div class="card">
-            <div class="section-title">
-                <i class="fas fa-search"></i>
-                Rechercher un client
-            </div>
-            <input type="text" id="searchClient" class="input" placeholder="Nom ou numero de telephone..." oninput="afficherHistorique()" style="margin-bottom: 0;">
-        </div>
-        
-        <!-- Filtres -->
-        <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <div class="section-title" style="margin: 0;">
-                    <i class="fas fa-filter"></i>
-                    Filtres
-                </div>
-                <button onclick="resetFiltresCommandes()" style="padding: 6px 12px; background: var(--glass-bg); border: 1px solid var(--diamond-border); border-radius: 8px; color: var(--text-muted); font-size: 10px; cursor: pointer;">
-                    <i class="fas fa-redo"></i> Reset
-                </button>
-            </div>
-            <div class="section-title" style="font-size: 11px; margin-bottom: 8px;">
-                <i class="fas fa-calendar"></i>
-                Periode
-            </div>
-            <div class="grid-2" style="margin-bottom: 12px;">
-                <button class="btn btn-primary" onclick="filtrerPeriode('jour')" id="btn-jour">Aujourd'hui</button>
-                <button class="btn btn-secondary" onclick="filtrerPeriode('semaine')" id="btn-semaine">Cette Semaine</button>
-                <button class="btn btn-secondary" onclick="filtrerPeriode('mois')" id="btn-mois">Ce Mois</button>
-                <button class="btn btn-secondary" onclick="filtrerPeriode('tout')" id="btn-tout">Tout</button>
-            </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
-                <div>
-                    <label class="label" style="font-size: 10px;">Date debut</label>
-                    <input type="date" id="filtreeDateDebut" class="input" style="font-size: 11px; padding: 8px;" onchange="afficherHistorique()">
-                </div>
-                <div>
-                    <label class="label" style="font-size: 10px;">Date fin</label>
-                    <input type="date" id="filtreeDateFin" class="input" style="font-size: 11px; padding: 8px;" onchange="afficherHistorique()">
-                </div>
-            </div>
-            <div style="margin-bottom: 8px;">
-                <label class="label" style="font-size: 10px;">Produit</label>
-                <select id="filtreProduit" class="input" style="font-size: 11px; padding: 8px;" onchange="afficherHistorique()">
-                    <option value="">Tous les produits</option>
-                </select>
-            </div>
+            <div id="searchSuggestions" style="display: none; margin-top: 8px; border-top: 1px solid var(--diamond-border); padding-top: 8px;"></div>
         </div>
 
         <!-- Stats resume -->
@@ -1575,6 +1517,46 @@
             <div class="stat-card">
                 <div class="stat-value counter-animate" id="statPanierMoyen" style="color: var(--accent-purple);">0 F</div>
                 <div class="stat-label">Panier Moyen</div>
+            </div>
+        </div>
+
+        <!-- Periode + Filtre entonnoir -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <div class="section-title" style="margin: 0;">
+                    <i class="fas fa-calendar"></i>
+                    Periode
+                </div>
+                <button onclick="toggleFiltresDates()" style="padding: 6px 10px; background: var(--glass-bg); border: 1px solid var(--diamond-border); border-radius: 8px; color: var(--text-muted); font-size: 14px; cursor: pointer;">
+                    <i class="fas fa-filter"></i>
+                </button>
+            </div>
+            <div class="grid-2" style="margin-bottom: 12px;">
+                <button class="btn btn-primary" onclick="filtrerPeriode('jour')" id="btn-jour">Aujourd'hui</button>
+                <button class="btn btn-secondary" onclick="filtrerPeriode('semaine')" id="btn-semaine">Cette Semaine</button>
+                <button class="btn btn-secondary" onclick="filtrerPeriode('mois')" id="btn-mois">Ce Mois</button>
+                <button class="btn btn-secondary" onclick="filtrerPeriode('tout')" id="btn-tout">Tout</button>
+            </div>
+            <div style="margin-bottom: 8px;">
+                <select id="filtreProduit" class="input" style="font-size: 12px; padding: 10px;" onchange="afficherHistorique()">
+                    <option value="">Tous les produits</option>
+                </select>
+            </div>
+            <!-- Filtres dates personnalises (caches par defaut) -->
+            <div id="filtresDatesCustom" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--diamond-border);">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+                    <div>
+                        <label class="label" style="font-size: 10px;">Date debut</label>
+                        <input type="date" id="filtreeDateDebut" class="input" style="font-size: 11px; padding: 8px;" onchange="afficherHistorique()">
+                    </div>
+                    <div>
+                        <label class="label" style="font-size: 10px;">Date fin</label>
+                        <input type="date" id="filtreeDateFin" class="input" style="font-size: 11px; padding: 8px;" onchange="afficherHistorique()">
+                    </div>
+                </div>
+                <button onclick="resetFiltresCommandes()" style="width: 100%; padding: 8px; background: var(--glass-bg); border: 1px solid var(--diamond-border); border-radius: 8px; color: var(--text-muted); font-size: 11px; cursor: pointer;">
+                    <i class="fas fa-redo"></i> Reinitialiser les filtres
+                </button>
             </div>
         </div>
 
@@ -1598,11 +1580,11 @@
             </div>
         </div>
 
-        <!-- Performance par Projet -->
+        <!-- Performance par Produit -->
         <div class="card" id="cardPerformanceProjets" style="display: none;">
             <div class="section-title">
                 <i class="fas fa-chart-pie"></i>
-                Performance par Projet
+                Performance par Produit
             </div>
             <div id="performanceProjets"></div>
         </div>
@@ -1677,7 +1659,7 @@
             </button>
         </div>
 
-        <!-- Liste des ventes -->
+        <!-- Liste des commandes -->
         <div class="card">
             <div class="section-title">
                 <i class="fas fa-list"></i>
@@ -1689,6 +1671,26 @@
                     <p>Aucune commande enregistree</p>
                 </div>
             </div>
+        </div>
+
+        <!-- Rapport CEO + Export/Import en bas -->
+        <div class="card" style="background: var(--gradient-primary); border: none; padding: 18px;">
+            <button onclick="genererRapportPDF()" style="width: 100%; background: white; color: var(--accent-blue); border: none; padding: 14px; border-radius: 12px; font-weight: 700; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                <i class="fas fa-file-pdf" style="font-size: 18px;"></i>
+                Generer mon Rapport CEO
+            </button>
+            <div style="font-size: 11px; color: white; opacity: 0.9; text-align: center; margin-top: 10px;">
+                Exportez vos statistiques en PDF professionnel
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px;">
+            <button onclick="exporterDonnees()" class="btn btn-secondary" style="padding: 12px; font-size: 12px;">
+                <i class="fas fa-download"></i> Exporter
+            </button>
+            <button onclick="importerDonnees()" class="btn btn-secondary" style="padding: 12px; font-size: 12px;">
+                <i class="fas fa-upload"></i> Importer
+            </button>
         </div>
     </div>
 
@@ -1915,8 +1917,8 @@
                 <span>Calcul</span>
             </button>
             <button id="navProjets" class="nav-tab" onclick="showTab('projets')">
-                <i class="fas fa-folder"></i>
-                <span>Projets</span>
+                <i class="fas fa-box"></i>
+                <span>Produits</span>
             </button>
             <button id="navHistorique" class="nav-tab" onclick="showTab('historique')">
                 <i class="fas fa-receipt"></i>
@@ -1929,7 +1931,7 @@
         </div>
     </nav>
 
-    <!-- MODAL: Nouveau Projet -->
+    <!-- MODAL: Nouveau Produit -->
     <div id="modalProjet" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header">

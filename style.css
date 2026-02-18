@@ -2646,3 +2646,8 @@
             padding: 0;
         }
     }
+
+@keyframes felicPop {
+    0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+    100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
