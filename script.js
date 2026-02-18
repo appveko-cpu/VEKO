@@ -8,6 +8,81 @@ if ('serviceWorker' in navigator) {
 }
 
 // ============================================
+// FORMATAGE NOMBRES AVEC POINTS
+// ============================================
+function formatMontant(n) {
+    if (n === null || n === undefined || isNaN(n)) return '0';
+    return Math.round(Number(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+function formatInputMontant(input) {
+    const raw = input.value.replace(/\./g, '').replace(/\s/g, '');
+    if (raw === '' || isNaN(raw)) return;
+    input.dataset.rawValue = raw;
+}
+
+// ============================================
+// TOGGLE PUB / COMMISSION (ETAPE 2)
+// ============================================
+let pubChoix = 'non';
+let commChoix = 'non';
+
+function togglePubChoix(choix) {
+    pubChoix = choix;
+    const btnOui = document.getElementById('btnPubOui');
+    const btnNon = document.getElementById('btnPubNon');
+    const zone = document.getElementById('zoneBudgetPubInput');
+    if (choix === 'oui') {
+        btnOui.className = 'btn btn-primary';
+        btnNon.className = 'btn btn-secondary';
+        zone.classList.remove('hidden');
+    } else {
+        btnNon.className = 'btn btn-primary';
+        btnOui.className = 'btn btn-secondary';
+        zone.classList.add('hidden');
+        document.getElementById('budgetPub').value = '0';
+        calculerCommande();
+    }
+}
+
+function toggleCommissionChoix(choix) {
+    commChoix = choix;
+    const btnOui = document.getElementById('btnCommOui');
+    const btnNon = document.getElementById('btnCommNon');
+    const zone = document.getElementById('zoneCommissionInput');
+    if (choix === 'oui') {
+        btnOui.className = 'btn btn-primary';
+        btnNon.className = 'btn btn-secondary';
+        zone.classList.remove('hidden');
+    } else {
+        btnNon.className = 'btn btn-primary';
+        btnOui.className = 'btn btn-secondary';
+        zone.classList.add('hidden');
+        document.getElementById('commissionStock').value = '0';
+        calculerCommande();
+    }
+}
+
+// ============================================
+// TOGGLE LOYER LABO
+// ============================================
+function fixToggleLoyer(choix) {
+    const btnOui = document.getElementById('fixBtnLoyerOui');
+    const btnNon = document.getElementById('fixBtnLoyerNon');
+    const zone = document.getElementById('fixZoneLoyerInput');
+    if (choix === 'oui') {
+        btnOui.className = 'btn btn-primary';
+        btnNon.className = 'btn btn-secondary';
+        zone.classList.remove('hidden');
+    } else {
+        btnNon.className = 'btn btn-primary';
+        btnOui.className = 'btn btn-secondary';
+        zone.classList.add('hidden');
+        document.getElementById('fixBoutiqueLoyerMensuel').value = '0';
+    }
+}
+
+// ============================================
 // VARIABLES GLOBALES
 // ============================================
 let ventes = [];
@@ -484,6 +559,21 @@ function switchAuthTab(mode) {
     }
 }
 
+async function loginWithGoogle() {
+    const { data, error } = await supabaseClient.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+            redirectTo: 'https://veko-app.com'
+        }
+    });
+    if (error) {
+        const errDiv = document.getElementById('authError');
+        const errText = document.getElementById('authErrorText');
+        errText.textContent = error.message || 'Erreur de connexion Google.';
+        errDiv.style.display = 'block';
+    }
+}
+
 async function handleAuth() {
     const email = document.getElementById('authEmail').value.trim();
     const password = document.getElementById('authPassword').value;
@@ -625,6 +715,17 @@ async function sendResetEmail() {
 }
 
 async function checkSession() {
+    const hash = window.location.hash;
+    if (hash && (hash.includes('access_token') || hash.includes('type=signup') || hash.includes('type=magiclink'))) {
+        try {
+            const { data, error } = await supabaseClient.auth.getSession();
+            if (data.session) {
+                window.history.replaceState(null, '', window.location.pathname);
+                showApp(data.session.user);
+                return;
+            }
+        } catch(e) {}
+    }
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (session) {
         showApp(session.user);
@@ -794,7 +895,10 @@ supabaseClient.auth.onAuthStateChange((event, session) => {
     if (event === 'PASSWORD_RECOVERY') {
         showResetPasswordForm();
     } else if (event === 'SIGNED_IN' && session) {
-        showApp(session.user);
+        const authScreen = document.getElementById('authScreen');
+        if (authScreen && authScreen.style.display !== 'none') {
+            showApp(session.user);
+        }
     }
 });
 
@@ -1121,11 +1225,71 @@ function updateActivityRing() {
             </div>
             <div style="text-align: center; margin-top: 8px; font-size: 12px; color: ${progressColor}; font-weight: 700;">${progression}% aujourd'hui</div>
         `;
+        
+        checkObjectifAtteint(progression, 'jour');
     }
 }
 
 function suiviObjectifJour() {
     updateActivityRing();
+}
+
+// ============================================
+// GAMIFICATION - OBJECTIF ATTEINT
+// ============================================
+function checkObjectifAtteint(progression, type) {
+    const today = new Date().toDateString();
+    const key = 'veko_objectif_' + type + '_atteint';
+    const lastAtteint = localStorage.getItem(key);
+    
+    if (progression >= 100 && lastAtteint !== today) {
+        localStorage.setItem(key, today);
+        
+        setTimeout(() => {
+            if (type === 'jour') {
+                afficherNotification('Objectif du jour atteint ! Bravo, continuez !', 'success');
+            } else {
+                afficherNotification('Objectif general atteint ! Felicitations, vous etes un champion !', 'success');
+            }
+            hapticFeedback(200);
+            
+            checkNiveauGamification();
+        }, 500);
+    }
+}
+
+function checkNiveauGamification() {
+    const objectifsAtteints = Number(localStorage.getItem('veko_objectifs_count') || '0') + 1;
+    localStorage.setItem('veko_objectifs_count', String(objectifsAtteints));
+    
+    const niveaux = [
+        { seuil: 1, nom: 'Debutant Motive', icon: 'fa-seedling' },
+        { seuil: 3, nom: 'En Progression', icon: 'fa-chart-line' },
+        { seuil: 7, nom: 'Regulier', icon: 'fa-star' },
+        { seuil: 15, nom: 'Performant', icon: 'fa-fire' },
+        { seuil: 30, nom: 'Expert', icon: 'fa-trophy' },
+        { seuil: 50, nom: 'Maitre', icon: 'fa-crown' },
+        { seuil: 100, nom: 'Legende', icon: 'fa-gem' }
+    ];
+    
+    let niveauActuel = niveaux[0];
+    for (let i = niveaux.length - 1; i >= 0; i--) {
+        if (objectifsAtteints >= niveaux[i].seuil) {
+            niveauActuel = niveaux[i];
+            break;
+        }
+    }
+    
+    const lastNiveau = localStorage.getItem('veko_gamification_niveau');
+    if (lastNiveau !== niveauActuel.nom) {
+        localStorage.setItem('veko_gamification_niveau', niveauActuel.nom);
+        if (lastNiveau) {
+            setTimeout(() => {
+                afficherNotification('Nouveau niveau : ' + niveauActuel.nom + ' ! (' + objectifsAtteints + ' objectifs atteints)', 'success');
+                hapticFeedback(300);
+            }, 2000);
+        }
+    }
 }
 
 // ============================================
@@ -1515,7 +1679,8 @@ function showTab(tab) {
         'nouvelle': 'navCalcul',
         'projets': 'navProjets',
         'historique': 'navHistorique',
-        'simulation': 'navSimulation'
+        'simulation': 'navSimulation',
+        'clients': 'navClients'
     };
     
     const navId = navMap[tab];
@@ -1528,6 +1693,11 @@ function showTab(tab) {
     
     if (tab === 'historique') {
         afficherHistorique();
+        updateFiltreProduit();
+    }
+    
+    if (tab === 'clients') {
+        afficherClients();
     }
     
     if (tab === 'simulation') {
@@ -1602,6 +1772,7 @@ function changerTypeProjet(type) {
 function openModalProjet() {
     document.getElementById('modalProjet').style.display = 'block';
     document.getElementById('projetNom').value = '';
+    document.getElementById('projetPrixVente').value = '';
     document.getElementById('projetPrixAchat').value = '';
     document.getElementById('projetNbArticles').value = '';
     document.getElementById('projetFraisLivraison').value = '0';
@@ -1618,6 +1789,7 @@ function closeModalProjet() {
 
 function sauvegarderProjet() {
     const nom = document.getElementById('projetNom').value.trim();
+    const prixVenteProjet = Number(document.getElementById('projetPrixVente').value) || 0;
     
     if (!nom) {
         alert('Veuillez entrer un nom de produit !');
@@ -1644,6 +1816,7 @@ function sauvegarderProjet() {
             nom: nom,
             type: 'fournisseur',
             prixAchat: prixAchat,
+            prixVente: prixVenteProjet,
             nbArticles: nbArticles,
             fraisLivraison: fraisLivraison,
             prixRevient: prixRevientCalc,
@@ -1667,6 +1840,7 @@ function sauvegarderProjet() {
             id: Date.now(),
             nom: nom,
             type: 'production',
+            prixVente: prixVenteProjet,
             coutMatieres: coutMatieres,
             coutMainOeuvre: coutMainOeuvre,
             autresFrais: autresFrais,
@@ -1797,6 +1971,10 @@ function chargerProjetDansCalcul() {
     document.getElementById('nbArticlesAchetes').value = projet.nbArticles;
     document.getElementById('fraisLivraisonFournisseur').value = projet.fraisLivraison;
     
+    if (projet.prixVente && projet.prixVente > 0) {
+        document.getElementById('prixVenteUnit').value = projet.prixVente;
+    }
+    
     const coutTotal = (projet.prixAchat * projet.nbArticles) + projet.fraisLivraison;
     prixRevient = projet.prixRevient;
     
@@ -1924,24 +2102,26 @@ function calculerCommande() {
     const depensesTotales = coutAcquisition + commissionTotale + budgetPub + fraisLivClient;
     const benefice = ca - depensesTotales;
     
-    document.getElementById('ca').textContent = ca.toLocaleString() + ' ' + deviseActuelle;
-    document.getElementById('coutAcquisition').textContent = Math.round(coutAcquisition).toLocaleString() + ' ' + deviseActuelle;
-    document.getElementById('commissionTotale').textContent = commissionTotale.toLocaleString() + ' ' + deviseActuelle;
+    document.getElementById('ca').textContent = formatMontant(ca) + ' ' + deviseActuelle;
+    document.getElementById('coutAcquisition').textContent = formatMontant(coutAcquisition) + ' ' + deviseActuelle;
+    document.getElementById('commissionTotale').textContent = formatMontant(commissionTotale) + ' ' + deviseActuelle;
     
-    if (budgetPub === 0) {
+    if (pubChoix === 'oui' && budgetPub === 0) {
         document.getElementById('pubTotal').innerHTML = '<span style="color: var(--accent-orange);">0 ' + deviseActuelle + ' (a repartir)</span>';
     } else {
-        document.getElementById('pubTotal').textContent = budgetPub.toLocaleString() + ' ' + deviseActuelle;
+        document.getElementById('pubTotal').textContent = formatMontant(budgetPub) + ' ' + deviseActuelle;
     }
     
-    document.getElementById('livraisonTotal').textContent = fraisLivClient.toLocaleString() + ' ' + deviseActuelle;
-    document.getElementById('depensesTotales').textContent = Math.round(depensesTotales).toLocaleString() + ' ' + deviseActuelle;
+    document.getElementById('livraisonTotal').textContent = formatMontant(fraisLivClient) + ' ' + deviseActuelle;
+    document.getElementById('depensesTotales').textContent = formatMontant(depensesTotales) + ' ' + deviseActuelle;
     
     const beneficeElem = document.getElementById('beneficeNet');
-    if (budgetPub === 0) {
-        beneficeElem.innerHTML = Math.round(benefice).toLocaleString() + ' ' + deviseActuelle + ' <span style="font-size: 14px; color: var(--accent-orange);">(provisoire)</span>';
+    if (pubChoix === 'oui' && budgetPub === 0) {
+        beneficeElem.innerHTML = formatMontant(benefice) + ' ' + deviseActuelle + ' <span style="font-size: 14px; color: var(--accent-orange);">(provisoire)</span>';
+    } else if (pubChoix === 'non') {
+        beneficeElem.innerHTML = formatMontant(benefice) + ' ' + deviseActuelle + ' <span style="font-size: 14px; color: var(--accent-green);">(d\u00e9finitif)</span>';
     } else {
-        beneficeElem.textContent = Math.round(benefice).toLocaleString() + ' ' + deviseActuelle;
+        beneficeElem.textContent = formatMontant(benefice) + ' ' + deviseActuelle;
     }
     beneficeElem.className = 'result-value ' + (benefice >= 0 ? '' : 'negative');
     
@@ -1957,14 +2137,14 @@ function reinitialiserEtape2() {
     document.getElementById('nbPiecesCommande').value = '';
     document.getElementById('prixVenteUnit').value = '';
     document.getElementById('budgetPub').value = '0';
-    document.getElementById('budgetPubOption').value = 'montant';
     document.getElementById('fraisLivraisonClient').value = '0';
-    document.getElementById('commissionStock').value = '1000';
-    document.getElementById('commissionOption').value = 'montant';
+    document.getElementById('commissionStock').value = '0';
     document.getElementById('resultCommande').classList.add('hidden');
     
-    toggleBudgetPubInput();
-    toggleCommissionInput();
+    pubChoix = 'non';
+    commChoix = 'non';
+    togglePubChoix('non');
+    toggleCommissionChoix('non');
     
     hapticFeedback();
     afficherNotification('Formulaire reinitialise', 'info');
@@ -1981,10 +2161,8 @@ function enregistrerVente() {
     const nbPieces = Number(document.getElementById('nbPiecesCommande').value) || 0;
     const prixVente = Number(document.getElementById('prixVenteUnit').value) || 0;
     const budgetPub = Number(document.getElementById('budgetPub').value) || 0;
-    const budgetPubOption = document.getElementById('budgetPubOption').value;
     const fraisLivClient = Number(document.getElementById('fraisLivraisonClient').value) || 0;
     const commissionUnit = Number(document.getElementById('commissionStock').value) || 0;
-    const commissionOption = document.getElementById('commissionOption').value;
     
     if (nbPieces === 0 || prixVente === 0 || prixRevient === 0) {
         alert('Veuillez completer toutes les informations !');
@@ -2012,9 +2190,9 @@ function enregistrerVente() {
         commissionUnit: commissionUnit,
         commissionTotale: commissionTotale,
         budgetPub: budgetPub,
-        budgetPubProvisoire: budgetPubOption !== 'aucun' && budgetPub === 0,
-        pasDeFraisPub: budgetPubOption === 'aucun',
-        gestionnaireOption: commissionOption,
+        budgetPubProvisoire: pubChoix === 'oui' && budgetPub === 0,
+        pasDeFraisPub: pubChoix === 'non',
+        gestionnaireOption: commChoix,
         fraisLivraisonClient: fraisLivClient,
         depensesTotales: depensesTotales,
         benefice: benefice
@@ -2031,14 +2209,18 @@ function enregistrerVente() {
     document.getElementById('nbPiecesCommande').value = '';
     document.getElementById('prixVenteUnit').value = '';
     document.getElementById('budgetPub').value = '0';
-    document.getElementById('budgetPubOption').value = 'montant';
     document.getElementById('fraisLivraisonClient').value = '0';
-    document.getElementById('commissionStock').value = '1000';
-    document.getElementById('commissionOption').value = 'montant';
+    document.getElementById('commissionStock').value = '0';
     document.getElementById('resultCommande').classList.add('hidden');
     
-    toggleBudgetPubInput();
-    toggleCommissionInput();
+    pubChoix = 'non';
+    commChoix = 'non';
+    document.getElementById('btnPubOui').className = 'btn btn-secondary';
+    document.getElementById('btnPubNon').className = 'btn btn-secondary';
+    document.getElementById('zoneBudgetPubInput').classList.add('hidden');
+    document.getElementById('btnCommOui').className = 'btn btn-secondary';
+    document.getElementById('btnCommNon').className = 'btn btn-secondary';
+    document.getElementById('zoneCommissionInput').classList.add('hidden');
 }
 
 // ============================================
@@ -2105,7 +2287,32 @@ function getCouleurBenefice(benefice, ca) {
 }
 
 function afficherHistorique() {
-    const ventesFiltrees = filtrerVentesPeriode();
+    let ventesFiltrees = filtrerVentesPeriode();
+    
+    const searchVal = (document.getElementById('searchClient')?.value || '').trim().toLowerCase();
+    if (searchVal) {
+        ventesFiltrees = ventesFiltrees.filter(v => {
+            const nom = (v.nomClient || '').toLowerCase();
+            const tel = (v.telClient || '').toLowerCase();
+            return nom.includes(searchVal) || tel.includes(searchVal);
+        });
+    }
+    
+    const filtreProduit = document.getElementById('filtreProduit')?.value || '';
+    if (filtreProduit) {
+        ventesFiltrees = ventesFiltrees.filter(v => v.projetNom === filtreProduit);
+    }
+    
+    const dateDebut = document.getElementById('filtreeDateDebut')?.value;
+    const dateFin = document.getElementById('filtreeDateFin')?.value;
+    if (dateDebut) {
+        ventesFiltrees = ventesFiltrees.filter(v => new Date(v.date) >= new Date(dateDebut));
+    }
+    if (dateFin) {
+        const df = new Date(dateFin);
+        df.setHours(23, 59, 59, 999);
+        ventesFiltrees = ventesFiltrees.filter(v => new Date(v.date) <= df);
+    }
     
     const ventesAujourdhui = ventes.filter(v => {
         const dateVente = new Date(v.date);
@@ -2143,6 +2350,10 @@ function afficherHistorique() {
     const margeElem = document.getElementById('statMarge');
     margeElem.textContent = marge + '%';
     margeElem.style.color = couleurStats.color;
+    
+    const panierMoyen = nbVentes > 0 ? Math.round(caTotal / nbVentes) : 0;
+    const panierMoyenElem = document.getElementById('statPanierMoyen');
+    if (panierMoyenElem) panierMoyenElem.textContent = panierMoyen.toLocaleString() + ' ' + deviseActuelle;
     
     afficherPerformanceProjets(ventesFiltrees);
     
@@ -2852,6 +3063,32 @@ function fixChoisirPub(choix) {
     hapticFeedback();
 }
 
+function fixToggleBoutiqueVolumeInconnu() {
+    fixateurData.boutiqueVolumeInconnu = true;
+    const input = document.getElementById('fixBoutiqueVolumeSeul');
+    const btn = document.getElementById('fixBtnBoutiqueVolumeInconnu');
+    input.value = '';
+    input.disabled = true;
+    input.style.opacity = '0.4';
+    btn.className = 'btn btn-primary';
+    btn.style.padding = '8px 12px'; btn.style.fontSize = '10px';
+    document.getElementById('fixZoneBoutiqueVolumeInconnu').classList.remove('hidden');
+    hapticFeedback();
+}
+
+function fixToggleBoutiqueVolumeInput() {
+    const input = document.getElementById('fixBoutiqueVolumeSeul');
+    if (input.value) {
+        fixateurData.boutiqueVolumeInconnu = false;
+        input.disabled = false;
+        input.style.opacity = '1';
+        const btn = document.getElementById('fixBtnBoutiqueVolumeInconnu');
+        btn.className = 'btn btn-secondary';
+        btn.style.padding = '8px 12px'; btn.style.fontSize = '10px';
+        document.getElementById('fixZoneBoutiqueVolumeInconnu').classList.add('hidden');
+    }
+}
+
 function fixToggleVolumeInconnu() {
     fixateurData.volumeInconnu = true;
     const input = document.getElementById('fixEnLigneVolume');
@@ -2910,14 +3147,15 @@ function fixValiderEtape3() {
 
     if (boutique) {
         const loyer = Number(document.getElementById('fixBoutiqueLoyerMensuel').value) || 0;
-        if (loyer <= 0) { afficherNotification('Entrez le montant du loyer mensuel', 'error'); return; }
         if (!fixateurData.produitSeul) { afficherNotification('Indiquez si ce produit est le seul en boutique', 'error'); return; }
 
         fixateurData.canaux.boutique = { loyerMensuel: loyer };
 
         if (fixateurData.produitSeul === 'oui') {
-            const vol = Number(document.getElementById('fixBoutiqueVolumeSeul').value) || 0;
-            if (vol <= 0) { afficherNotification('Entrez le volume de vente prevu', 'error'); return; }
+            let vol = Number(document.getElementById('fixBoutiqueVolumeSeul').value) || 0;
+            if (fixateurData.boutiqueVolumeInconnu) {
+                vol = 10;
+            } else if (vol <= 0) { afficherNotification('Entrez le volume de vente prevu', 'error'); return; }
             fixateurData.canaux.boutique.loyerParArticle = loyer / vol;
         } else {
             if (!fixateurData.palierProduits) { afficherNotification('Choisissez le nombre de produits en boutique', 'error'); return; }
@@ -3205,8 +3443,15 @@ function fixGenererRapport() {
     document.getElementById('fixScenarioEquilibreMsg').innerHTML = 'Pour couvrir tous vos frais avec <strong>20% de marge de securite</strong> pour les imprevus (retours, casse, remises), vendez a minimum <strong style="color: var(--accent-blue); font-size: 14px;">' + prixEquilibre.toLocaleString() + ' ' + deviseActuelle + '</strong>. Benefice net: ' + Math.round(prixEquilibre - coutRevient).toLocaleString() + ' ' + deviseActuelle + '/vente.';
 
     fixateurData._coutRevient = coutRevient;
-    document.getElementById('fixScenarioPocheInput').value = '';
-    document.getElementById('fixScenarioPocheMsg').textContent = '';
+    const pocheInput = document.getElementById('fixScenarioPocheInput');
+    const pocheSection = document.getElementById('fixScenarioPocheSection');
+    if (pocheInput && Number(pocheInput.value) > 0) {
+        fixCalculerPoche();
+        if (pocheSection) pocheSection.style.display = 'block';
+    } else {
+        document.getElementById('fixScenarioPocheMsg').textContent = '';
+        if (pocheSection) pocheSection.style.display = 'none';
+    }
 
     const justifEl = document.getElementById('fixJustifierPrix');
     const justifContenu = document.getElementById('fixJustifierContenu');
@@ -3325,6 +3570,12 @@ function fixRecommencer() {
 
     document.getElementById('fixBoutiqueLoyerMensuel').value = '';
     document.getElementById('fixBoutiqueVolumeSeul').value = '';
+    document.getElementById('fixBoutiqueVolumeSeul').disabled = false;
+    document.getElementById('fixBoutiqueVolumeSeul').style.opacity = '1';
+    const bvBtn = document.getElementById('fixBtnBoutiqueVolumeInconnu');
+    if (bvBtn) { bvBtn.className = 'btn btn-secondary'; bvBtn.style.padding = '8px 12px'; bvBtn.style.fontSize = '10px'; }
+    const bvZone = document.getElementById('fixZoneBoutiqueVolumeInconnu');
+    if (bvZone) bvZone.classList.add('hidden');
     ['fixZoneProduitSeul', 'fixZoneProduitMultiple', 'fixZonePourcentLoyer'].forEach(id => document.getElementById(id).classList.add('hidden'));
     ['fixBtnProduitSeulOui', 'fixBtnProduitSeulNon'].forEach(id => {
         const el = document.getElementById(id);
@@ -3368,6 +3619,8 @@ function fixRecommencer() {
     document.getElementById('fixStaffCommissionMontant').value = '';
 
     document.getElementById('fixScenarioPocheInput').value = '';
+    const pocheSection = document.getElementById('fixScenarioPocheSection');
+    if (pocheSection) pocheSection.style.display = 'none';
 
     fixateurData = {};
     hapticFeedback();
@@ -3662,38 +3915,43 @@ function supprimerObjectif() {
 }
 
 function afficherObjectifMensuel() {
-    const objectifMensuel = JSON.parse(localStorage.getItem('veko_objectif') || 'null');
     const cardObjectif = document.getElementById('cardObjectif');
     
-    if (!objectifMensuel) {
-        cardObjectif.style.display = 'none';
-        return;
-    }
-    
-    const maintenant = new Date();
-    if (objectifMensuel.mois !== maintenant.getMonth() || objectifMensuel.annee !== maintenant.getFullYear()) {
+    if (!objectifPersonnel) {
         cardObjectif.style.display = 'none';
         return;
     }
     
     cardObjectif.style.display = 'block';
     
-    const ventesMois = ventes.filter(v => {
-        const date = new Date(v.date);
-        return date.getMonth() === maintenant.getMonth() && date.getFullYear() === maintenant.getFullYear();
+    const debutParts = objectifPersonnel.dateDebut.split('-');
+    const dateDebutObj = new Date(debutParts[0], debutParts[1] - 1, debutParts[2], 0, 0, 0);
+    const finParts = objectifPersonnel.dateFin.split('-');
+    const dateFinObj = new Date(finParts[0], finParts[1] - 1, finParts[2], 23, 59, 59);
+    
+    const ventesObjectif = ventes.filter(v => {
+        const d = new Date(v.date);
+        return d >= dateDebutObj && d <= dateFinObj && !v.retournee;
     });
     
-    const valeurActuelle = objectifMensuel.type === 'CA' 
-        ? ventesMois.reduce((sum, v) => sum + v.ca, 0)
-        : ventesMois.filter(v => !v.retournee).reduce((sum, v) => sum + v.benefice, 0);
+    let valeurActuelle = 0;
+    if (objectifPersonnel.type === 'CA') {
+        valeurActuelle = ventesObjectif.reduce((sum, v) => sum + v.ca, 0);
+    } else if (objectifPersonnel.type === 'Ventes') {
+        valeurActuelle = ventesObjectif.length;
+    } else {
+        valeurActuelle = ventesObjectif.reduce((sum, v) => sum + v.benefice, 0);
+    }
     
-    const progression = Math.min((valeurActuelle / objectifMensuel.montant) * 100, 100);
+    const progression = Math.min((valeurActuelle / objectifPersonnel.montantTotal) * 100, 100);
     const couleur = progression >= 100 ? 'var(--accent-green)' : progression >= 75 ? 'var(--accent-orange)' : 'var(--accent-blue)';
+    const joursRestants = objectifPersonnel.joursRestants || 0;
+    const unite = objectifPersonnel.type === 'Ventes' ? '' : ' ' + deviseActuelle;
     
     document.getElementById('objectifDetails').innerHTML = `
         <div style="margin-bottom: 8px;">
             <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                <span style="font-size: 12px; color: var(--text-muted);">${objectifMensuel.type}</span>
+                <span style="font-size: 12px; color: var(--text-muted);">${objectifPersonnel.type} | ${joursRestants} jour(s) restant(s)</span>
                 <span style="font-size: 12px; font-weight: 700; color: ${couleur};">${progression.toFixed(0)}%</span>
             </div>
             <div style="background: var(--diamond-border); height: 10px; border-radius: 5px; overflow: hidden;">
@@ -3701,10 +3959,12 @@ function afficherObjectifMensuel() {
             </div>
         </div>
         <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted);">
-            <span>${Math.round(valeurActuelle).toLocaleString()} ${deviseActuelle}</span>
-            <span>${Math.round(objectifMensuel.montant).toLocaleString()} ${deviseActuelle}</span>
+            <span>${objectifPersonnel.type === 'Ventes' ? valeurActuelle : Math.round(valeurActuelle).toLocaleString()}${unite}</span>
+            <span>${objectifPersonnel.type === 'Ventes' ? objectifPersonnel.montantTotal : Math.round(objectifPersonnel.montantTotal).toLocaleString()}${unite}</span>
         </div>
     `;
+    
+    checkObjectifAtteint(progression, 'general');
 }
 
 function afficherProduitTop(ventesMois) {
@@ -4664,4 +4924,13 @@ document.addEventListener('click', function(e) {
         fabMenu.classList.remove('show');
     }
 });
+
+function openModalConfidentialite() {
+    const m = document.getElementById('modalConfidentialite');
+    if (m) { m.classList.remove('hidden'); m.style.display = 'flex'; }
+}
+function closeModalConfidentialite() {
+    const m = document.getElementById('modalConfidentialite');
+    if (m) { m.classList.add('hidden'); m.style.display = 'none'; }
+}
 
