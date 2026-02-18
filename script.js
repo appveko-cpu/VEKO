@@ -4857,7 +4857,7 @@ async function syncToSupabase() {
     if (!currentUser) return;
     try {
         const payload = {
-            user_id: currentUser.id,
+            utilisateur_id: currentUser.id,
             ventes: JSON.stringify(ventes),
             projets: JSON.stringify(projets),
             devise: deviseActuelle,
@@ -4865,7 +4865,8 @@ async function syncToSupabase() {
             profil: localStorage.getItem('veko_user_profile') || '{}',
             updated_at: new Date().toISOString()
         };
-        await supabaseClient.from('user_data').upsert(payload, { onConflict: 'user_id' });
+        const { error } = await supabaseClient.from('utilisateur_data').upsert(payload, { onConflict: 'utilisateur_id' });
+        if (error) console.error('Sync upsert error:', error.message);
     } catch(e) { console.error('Sync error:', e); }
 }
 
@@ -4873,26 +4874,24 @@ async function loadFromSupabase() {
     if (!currentUser) return false;
     try {
         const { data, error } = await supabaseClient
-            .from('user_data')
+            .from('utilisateur_data')
             .select('*')
-            .eq('user_id', currentUser.id)
+            .eq('utilisateur_id', currentUser.id)
             .single();
         
-        if (error || !data) return false;
+        if (error || !data) {
+            console.log('No cloud data found, pushing local data...');
+            await syncToSupabase();
+            return false;
+        }
         
         if (data.ventes) {
-            const cloudVentes = JSON.parse(data.ventes);
-            if (cloudVentes.length >= ventes.length) {
-                ventes = cloudVentes;
-                localStorage.setItem('nzoi_ventes', JSON.stringify(ventes));
-            }
+            ventes = JSON.parse(data.ventes);
+            localStorage.setItem('nzoi_ventes', JSON.stringify(ventes));
         }
         if (data.projets) {
-            const cloudProjets = JSON.parse(data.projets);
-            if (cloudProjets.length >= projets.length) {
-                projets = cloudProjets;
-                localStorage.setItem('nzoi_projets', JSON.stringify(projets));
-            }
+            projets = JSON.parse(data.projets);
+            localStorage.setItem('nzoi_projets', JSON.stringify(projets));
         }
         if (data.devise) {
             deviseActuelle = data.devise;
