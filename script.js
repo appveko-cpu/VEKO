@@ -759,10 +759,12 @@ function getDisplayName() {
     return null;
 }
 
-function showApp(user) {
+async function showApp(user) {
     currentUser = user;
     document.getElementById('authScreen').style.display = 'none';
     document.getElementById('mainApp').style.display = 'block';
+
+    await loadFromSupabase();
 
     let profile = getUserProfile();
     if (!profile) {
@@ -844,6 +846,7 @@ function saveSettingsProfile() {
     msgDiv.style.color = '#10b981';
     msgDiv.textContent = 'Informations enregistr\u00e9es avec succ\u00e8s !';
     setTimeout(() => { msgDiv.style.display = 'none'; }, 3000);
+    syncToSupabase();
 }
 
 async function changePasswordFromSettings() {
@@ -1744,6 +1747,7 @@ function saveDevise() {
     
     chargerDashboard();
     afficherHistorique();
+    syncToSupabase();
 }
 
 // ============================================
@@ -4846,6 +4850,66 @@ function importerDonnees() {
 function sauvegarderDonnees() {
     localStorage.setItem('nzoi_ventes', JSON.stringify(ventes));
     localStorage.setItem('nzoi_projets', JSON.stringify(projets));
+    syncToSupabase();
+}
+
+async function syncToSupabase() {
+    if (!currentUser) return;
+    try {
+        const payload = {
+            user_id: currentUser.id,
+            ventes: JSON.stringify(ventes),
+            projets: JSON.stringify(projets),
+            devise: deviseActuelle,
+            objectif: JSON.stringify(objectifPersonnel),
+            profil: localStorage.getItem('veko_user_profile') || '{}',
+            updated_at: new Date().toISOString()
+        };
+        await supabaseClient.from('user_data').upsert(payload, { onConflict: 'user_id' });
+    } catch(e) { console.error('Sync error:', e); }
+}
+
+async function loadFromSupabase() {
+    if (!currentUser) return false;
+    try {
+        const { data, error } = await supabaseClient
+            .from('user_data')
+            .select('*')
+            .eq('user_id', currentUser.id)
+            .single();
+        
+        if (error || !data) return false;
+        
+        if (data.ventes) {
+            const cloudVentes = JSON.parse(data.ventes);
+            if (cloudVentes.length >= ventes.length) {
+                ventes = cloudVentes;
+                localStorage.setItem('nzoi_ventes', JSON.stringify(ventes));
+            }
+        }
+        if (data.projets) {
+            const cloudProjets = JSON.parse(data.projets);
+            if (cloudProjets.length >= projets.length) {
+                projets = cloudProjets;
+                localStorage.setItem('nzoi_projets', JSON.stringify(projets));
+            }
+        }
+        if (data.devise) {
+            deviseActuelle = data.devise;
+            localStorage.setItem('veko_devise', deviseActuelle);
+            document.querySelectorAll('#deviseActuelle, #deviseActuelleDesktop').forEach(el => {
+                el.textContent = deviseActuelle;
+            });
+        }
+        if (data.objectif && data.objectif !== 'null') {
+            objectifPersonnel = JSON.parse(data.objectif);
+            localStorage.setItem('veko_objectif_personnel', JSON.stringify(objectifPersonnel));
+        }
+        if (data.profil && data.profil !== '{}') {
+            localStorage.setItem('veko_user_profile', data.profil);
+        }
+        return true;
+    } catch(e) { console.error('Load sync error:', e); return false; }
 }
 
 function chargerDonnees() {

@@ -693,7 +693,7 @@
         top: 0;
         right: -100%;
         width: 100%;
-        max-width: 400px;
+        max-width: 100%;
         height: 100%;
         background: var(--dark-surface);
         z-index: 8000;
@@ -706,7 +706,8 @@
     }
     
     .notif-panel-header {
-        padding: 20px;
+        padding: 16px 20px;
+        padding-top: calc(16px + env(safe-area-inset-top));
         border-bottom: 1px solid var(--diamond-border);
         display: flex;
         justify-content: space-between;
