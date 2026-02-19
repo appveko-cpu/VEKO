@@ -406,11 +406,15 @@ function loadModeEconomie() {
 async function deconnexion() {
     if(confirm("Voulez-vous vraiment vous d\u00e9connecter ?")) {
         closeProfileDropdown();
-        await supabaseClient.auth.signOut();
+        await supabaseClient.auth.signOut({ scope: 'local' });
+        currentUser = null;
+        ventes = [];
+        projets = [];
         document.getElementById('mainApp').style.display = 'none';
         document.getElementById('authScreen').style.display = 'flex';
         document.getElementById('authForm').style.display = 'block';
         document.getElementById('authEmail').value = '';
+        document.getElementById('authPassword').value = '';
         document.getElementById('authMessage').style.display = 'none';
         document.getElementById('authError').style.display = 'none';
         hapticFeedback(50);
@@ -563,7 +567,10 @@ async function loginWithGoogle() {
     const { data, error } = await supabaseClient.auth.signInWithOAuth({
         provider: 'google',
         options: {
-            redirectTo: 'https://veko-app.com'
+            redirectTo: 'https://veko-app.com',
+            queryParams: {
+                prompt: 'select_account'
+            }
         }
     });
     if (error) {
@@ -764,12 +771,13 @@ async function showApp(user) {
     document.getElementById('authScreen').style.display = 'none';
     document.getElementById('mainApp').style.display = 'block';
 
+    chargerDonnees();
     await loadFromSupabase();
 
     let profile = getUserProfile();
     if (!profile) {
         profile = {
-            username: generateUsername(user.email),
+            username: user.user_metadata?.full_name || generateUsername(user.email),
             nom: '',
             prenom: '',
             telephone: '',
@@ -779,6 +787,9 @@ async function showApp(user) {
         saveUserProfile(profile);
     } else {
         profile.email = user.email;
+        if (user.user_metadata?.full_name && profile.username === generateUsername(user.email)) {
+            profile.username = user.user_metadata.full_name;
+        }
         saveUserProfile(profile);
     }
 
@@ -788,6 +799,36 @@ async function showApp(user) {
 
     updateProfileDropdowns(displayName);
     initApp();
+
+    startRealtimeSync();
+}
+
+function startRealtimeSync() {
+    if (!currentUser) return;
+    try {
+        supabaseClient.channel('sync-' + currentUser.id)
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'utilisateur_data',
+                filter: 'utilisateur_id=eq.' + currentUser.id
+            }, async (payload) => {
+                if (payload.new) {
+                    const d = payload.new;
+                    if (d.ventes) { ventes = JSON.parse(d.ventes); localStorage.setItem('nzoi_ventes', JSON.stringify(ventes)); }
+                    if (d.projets) { projets = JSON.parse(d.projets); localStorage.setItem('nzoi_projets', JSON.stringify(projets)); }
+                    if (d.devise) { deviseActuelle = d.devise; localStorage.setItem('veko_devise', deviseActuelle); }
+                    if (d.objectif && d.objectif !== 'null') { objectifPersonnel = JSON.parse(d.objectif); localStorage.setItem('veko_objectif_personnel', JSON.stringify(objectifPersonnel)); }
+                    if (d.profil && d.profil !== '{}') { localStorage.setItem('veko_user_profile', d.profil); }
+                    try { afficherHistorique(); } catch(e) {}
+                    try { chargerDashboard(); } catch(e) {}
+                    try { afficherProjets(); } catch(e) {}
+                    try { afficherClients(); } catch(e) {}
+                    try { updateActivityRing(); } catch(e) {}
+                }
+            })
+            .subscribe();
+    } catch(e) { console.error('Realtime error:', e); }
 }
 
 function updateProfileDropdowns(displayName) {
@@ -5235,29 +5276,4 @@ function showFelicitation(message) {
     setTimeout(() => { div.style.opacity = '0'; div.style.transition = 'opacity 0.5s'; setTimeout(() => div.remove(), 500); }, 2500);
 }
 
-// ============================================
-// SIDEBAR EXPAND/COLLAPSE LOGO
-// ============================================
-function updateSidebarLogo() {
-    const sidebar = document.querySelector('.desktop-sidebar');
-    if (!sidebar) return;
-    const img = sidebar.querySelector('.sidebar-logo-img');
-    const text = sidebar.querySelector('.sidebar-logo-text');
-    if (!img || !text) return;
-    
-    if (sidebar.classList.contains('expanded') || sidebar.offsetWidth > 80) {
-        img.style.display = 'none';
-        text.style.display = 'block';
-    } else {
-        img.style.display = 'block';
-        text.style.display = 'none';
-    }
-}
-
-const sidebarObserver = new MutationObserver(updateSidebarLogo);
-const sidebarEl = document.querySelector('.desktop-sidebar');
-if (sidebarEl) {
-    sidebarObserver.observe(sidebarEl, { attributes: true, attributeFilter: ['class', 'style'] });
-    new ResizeObserver(updateSidebarLogo).observe(sidebarEl);
-}
 
