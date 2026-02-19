@@ -697,6 +697,53 @@
             <div id="produitsRisque"></div>
         </div>
         
+        <!-- Shopify Dashboard Section -->
+        <div class="card" id="shopifyDashboardSection" style="display: none;">
+            <h3 style="font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 16px;">
+                <i class="fab fa-shopify" style="color: #96bf48; margin-right: 8px;"></i>
+                Analyse Shopify
+            </h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                <div style="padding: 14px; background: var(--glass-bg); border: 1px solid var(--diamond-border); border-radius: 14px; text-align: center;">
+                    <div style="font-size: 9px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">Ventes Shopify</div>
+                    <div id="shopifyTotalCA" style="font-size: 18px; font-weight: 900; color: #96bf48;">0 F</div>
+                </div>
+                <div style="padding: 14px; background: var(--glass-bg); border: 1px solid var(--diamond-border); border-radius: 14px; text-align: center;">
+                    <div style="font-size: 9px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">CA Reel (Livre)</div>
+                    <div id="shopifyReelCA" style="font-size: 18px; font-weight: 900; color: var(--accent-blue);">0 F</div>
+                </div>
+                <div style="padding: 14px; background: var(--glass-bg); border: 1px solid var(--diamond-border); border-radius: 14px; text-align: center;">
+                    <div style="font-size: 9px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">Benefice Reel</div>
+                    <div id="shopifyReelBenefice" style="font-size: 18px; font-weight: 900; color: var(--accent-green);">0 F</div>
+                </div>
+            </div>
+            <div style="margin-top: 12px; padding: 10px; background: rgba(150,191,72,0.08); border: 1px solid rgba(150,191,72,0.15); border-radius: 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 11px; color: var(--text-muted);">Taux de livraison</span>
+                    <span id="shopifyTauxLivraison" style="font-size: 13px; font-weight: 800; color: #96bf48;">0%</span>
+                </div>
+                <div style="width: 100%; height: 6px; background: var(--glass-bg); border-radius: 3px; margin-top: 6px; overflow: hidden;">
+                    <div id="shopifyTauxBar" style="width: 0%; height: 100%; background: #96bf48; border-radius: 3px; transition: width 0.5s;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profil Completion -->
+        <div class="card" id="profilCompletionCard" style="display: none;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(245,158,11,0.15); display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-user-edit" style="color: var(--accent-orange);"></i>
+                </div>
+                <div style="flex: 1;">
+                    <div style="font-size: 13px; font-weight: 700; color: var(--text-primary);">Profil complete a <span id="profilCompletionPct">40</span>%</div>
+                    <div style="font-size: 11px; color: var(--text-muted);">Ajoutez une commande pour debloquer vos statistiques</div>
+                    <div style="width: 100%; height: 5px; background: var(--glass-bg); border-radius: 3px; margin-top: 6px; overflow: hidden;">
+                        <div id="profilCompletionBar" style="width: 40%; height: 100%; background: var(--accent-orange); border-radius: 3px; transition: width 0.5s;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <!-- Quick Actions -->
         <div class="grid-2">
             <button onclick="showTab('nouvelle')" class="btn btn-primary" style="padding: 14px;">
@@ -1892,6 +1939,26 @@
                 <div id="settingsPwdMsg" style="display: none; margin-top: 10px; padding: 10px; border-radius: 8px; text-align: center; font-size: 12px;"></div>
             </div>
 
+            <!-- Section Shopify -->
+            <div class="glass-card">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: rgba(150,191,72,0.2); display: flex; align-items: center; justify-content: center; color: #96bf48;"><i class="fab fa-shopify" style="font-size: 16px;"></i></div>
+                    <span style="font-size: 14px; font-weight: 700; color: var(--text-primary);">Integration Shopify</span>
+                </div>
+                <div id="shopifyStatus">
+                    <div style="display: flex; align-items: center; gap: 12px; padding: 14px; background: var(--glass-bg); border: 1px solid var(--diamond-border); border-radius: 12px; margin-bottom: 12px;">
+                        <i class="fab fa-shopify" style="font-size: 24px; color: var(--text-muted);"></i>
+                        <div>
+                            <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Aucune boutique connectee.</div>
+                            <div style="font-size: 11px; color: var(--text-muted);">Connectez votre boutique Shopify pour synchroniser vos commandes.</div>
+                        </div>
+                    </div>
+                    <button onclick="openShopifyModal()" style="width: 100%; padding: 13px; background: linear-gradient(135deg, #96bf48 0%, #5e8e3e 100%); color: white; border: none; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <i class="fab fa-shopify"></i> Connecter ma boutique
+                    </button>
+                </div>
+            </div>
+
             <div style="text-align: center; margin-top: 16px;">
                 <a href="#" onclick="openModalConfidentialite(); return false;" style="font-size: 12px; color: var(--text-muted); text-decoration: underline;">Politique de Confidentialit&#233; &amp; S&#233;curit&#233;</a>
             </div>
@@ -2233,6 +2300,71 @@
         <h2 style="font-size: 15px; font-weight: 700; color: #10b981; margin-top: 20px;">6. Contact</h2>
         <p style="font-size: 12px; color: var(--text-secondary);">Pour toute question : <strong style="color: #8b5cf6;">appveko@gmail.com</strong></p>
         <button onclick="closeModalConfidentialite()" style="margin-top: 20px; width: 100%; padding: 14px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer;">Fermer</button>
+    </div>
+</div>
+
+<!-- ONBOARDING POPUP -->
+<div id="onboardingPopup" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 99998; display: none; align-items: center; justify-content: center; padding: 20px;">
+    <div style="background: var(--dark-card); border: 1px solid var(--diamond-border); border-radius: 24px; max-width: 480px; width: 100%; padding: 32px 24px; position: relative; max-height: 90vh; overflow-y: auto;">
+        <button onclick="closeOnboarding()" style="position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.1); border: none; color: var(--text-muted); width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center;">
+            <i class="fas fa-times"></i>
+        </button>
+        <div style="text-align: center; margin-bottom: 24px;">
+            <div style="font-size: 40px; margin-bottom: 12px;">&#x1F680;</div>
+            <h2 style="font-size: 18px; font-weight: 900; color: var(--text-primary); margin: 0 0 8px;" id="onboardingTitle">Felicitations d'avoir choisi VEKO !</h2>
+            <p style="font-size: 12px; color: var(--text-muted); margin: 0;">Votre assistant financier est pret. Pour configurer votre espace, comment vendez-vous principalement ?</p>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+            <button onclick="choixBoutiquePhysique()" style="padding: 18px 16px; background: var(--glass-bg); border: 2px solid var(--diamond-border); border-radius: 16px; cursor: pointer; text-align: left; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--accent-blue)'" onmouseout="this.style.borderColor='var(--diamond-border)'">
+                <div style="font-size: 24px; margin-bottom: 6px;">&#x1F3EA;</div>
+                <div style="font-size: 14px; font-weight: 700; color: var(--text-primary);">Boutique Physique</div>
+                <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Je vends au comptoir ou sur le terrain.</div>
+            </button>
+            <button onclick="choixVenteSociale()" style="padding: 18px 16px; background: var(--glass-bg); border: 2px solid var(--diamond-border); border-radius: 16px; cursor: pointer; text-align: left; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--accent-green)'" onmouseout="this.style.borderColor='var(--diamond-border)'">
+                <div style="font-size: 24px; margin-bottom: 6px;">&#x1F4AC;</div>
+                <div style="font-size: 14px; font-weight: 700; color: var(--text-primary);">Vente Sociale</div>
+                <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Je vends via messagerie WhatsApp, FB, etc.</div>
+            </button>
+            <button onclick="choixEcommerce()" style="padding: 18px 16px; background: var(--glass-bg); border: 2px solid var(--diamond-border); border-radius: 16px; cursor: pointer; text-align: left; transition: all 0.2s;" onmouseover="this.style.borderColor='#96bf48'" onmouseout="this.style.borderColor='var(--diamond-border)'">
+                <div style="font-size: 24px; margin-bottom: 6px;">&#x1F6CD;</div>
+                <div style="font-size: 14px; font-weight: 700; color: var(--text-primary);">E-commerce Pro</div>
+                <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">J'ai une boutique Shopify a automatiser.</div>
+            </button>
+        </div>
+        <p style="font-size: 10px; color: var(--text-muted); text-align: center; margin-top: 16px;">
+            <a href="#" onclick="closeOnboarding(); return false;" style="color: var(--text-muted); text-decoration: underline;">Ignorer pour le moment</a>
+        </p>
+    </div>
+</div>
+
+<!-- SHOPIFY CONNECT MODAL -->
+<div id="shopifyModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 99998; align-items: center; justify-content: center; padding: 20px;">
+    <div style="background: var(--dark-card); border: 1px solid var(--diamond-border); border-radius: 20px; max-width: 400px; width: 100%; padding: 28px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <i class="fab fa-shopify" style="font-size: 24px; color: #96bf48;"></i>
+                <span style="font-size: 16px; font-weight: 800; color: var(--text-primary);">Connecter Shopify</span>
+            </div>
+            <button onclick="closeShopifyModal()" style="background: none; border: none; color: var(--text-muted); font-size: 18px; cursor: pointer;"><i class="fas fa-times"></i></button>
+        </div>
+        <div style="margin-bottom: 16px;">
+            <label style="font-size: 11px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 6px;">URL de votre boutique</label>
+            <div style="display: flex; align-items: center; gap: 0;">
+                <input type="text" id="shopifyShopUrl" placeholder="ma-boutique" style="flex: 1; padding: 12px; background: rgba(255,255,255,0.06); border: 1px solid var(--diamond-border); border-right: none; border-radius: 10px 0 0 10px; color: var(--text-primary); font-size: 13px; outline: none;">
+                <span style="padding: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--diamond-border); border-radius: 0 10px 10px 0; font-size: 11px; color: var(--text-muted); white-space: nowrap;">.myshopify.com</span>
+            </div>
+        </div>
+        <div style="margin-bottom: 20px;">
+            <label style="font-size: 11px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 6px;">Importer les commandes depuis</label>
+            <div style="display: flex; gap: 8px;">
+                <button type="button" class="btn btn-secondary shopify-range-btn" onclick="selectShopifyRange('1m')" style="flex: 1; padding: 10px; font-size: 12px;" data-range="1m">1 mois</button>
+                <button type="button" class="btn btn-secondary shopify-range-btn" onclick="selectShopifyRange('3m')" style="flex: 1; padding: 10px; font-size: 12px;" data-range="3m">3 mois</button>
+                <button type="button" class="btn btn-primary shopify-range-btn" onclick="selectShopifyRange('all')" style="flex: 1; padding: 10px; font-size: 12px;" data-range="all">Tout</button>
+            </div>
+        </div>
+        <button onclick="startShopifyOAuth()" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #96bf48 0%, #5e8e3e 100%); color: white; border: none; border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <i class="fab fa-shopify"></i> Connecter et Importer
+        </button>
     </div>
 </div>
 

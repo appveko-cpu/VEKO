@@ -803,6 +803,13 @@ async function showApp(user) {
     initApp();
 
     startRealtimeSync();
+    checkShopifyConnection();
+    checkShopifyCallback();
+    updateProfilCompletion();
+
+    if (!localStorage.getItem('veko_onboarding_done')) {
+        setTimeout(() => showOnboarding(), 3000);
+    }
 }
 
 function startRealtimeSync() {
@@ -812,16 +819,18 @@ function startRealtimeSync() {
             .on('postgres_changes', {
                 event: 'UPDATE',
                 schema: 'public',
-                table: 'utilisateur_data',
-                filter: 'utilisateur_id=eq.' + currentUser.id
+                table: 'user_data',
+                filter: 'user_id=eq.' + currentUser.id
             }, async (payload) => {
                 if (payload.new) {
                     const d = payload.new;
-                    if (d.ventes) { ventes = JSON.parse(d.ventes); }
-                    if (d.projets) { projets = JSON.parse(d.projets); }
-                    if (d.devise) { deviseActuelle = d.devise; }
-                    if (d.objectif && d.objectif !== 'null') { const o = JSON.parse(d.objectif); if (o.personnel !== undefined) { objectifPersonnel = o.personnel; objectifMensuel = o.mensuel; } else { objectifPersonnel = o; } }
-                    if (d.profil && d.profil !== '{}') { _userProfile = JSON.parse(d.profil); }
+                    if (d.ventes && Array.isArray(d.ventes)) ventes = d.ventes;
+                    if (d.projets && Array.isArray(d.projets)) projets = d.projets;
+                    if (d.devise) deviseActuelle = d.devise;
+                    if (d.objectifs && typeof d.objectifs === 'object') {
+                        if (d.objectifs.personnel !== undefined) { objectifPersonnel = d.objectifs.personnel; objectifMensuel = d.objectifs.mensuel || null; }
+                    }
+                    if (d.profil && typeof d.profil === 'object' && Object.keys(d.profil).length > 0) _userProfile = d.profil;
                     try { afficherHistorique(); } catch(e) {}
                     try { chargerDashboard(); } catch(e) {}
                     try { afficherProjets(); } catch(e) {}
@@ -4896,15 +4905,15 @@ async function syncToSupabase() {
     if (!currentUser) return;
     try {
         const payload = {
-            utilisateur_id: currentUser.id,
-            ventes: JSON.stringify(ventes),
-            projets: JSON.stringify(projets),
+            user_id: currentUser.id,
+            ventes: ventes,
+            projets: projets,
             devise: deviseActuelle,
-            objectif: JSON.stringify({ personnel: objectifPersonnel, mensuel: objectifMensuel }),
-            profil: JSON.stringify(_userProfile || {}),
+            objectifs: { personnel: objectifPersonnel, mensuel: objectifMensuel },
+            profil: _userProfile || {},
             updated_at: new Date().toISOString()
         };
-        const { error } = await supabaseClient.from('utilisateur_data').upsert(payload, { onConflict: 'utilisateur_id' });
+        const { error } = await supabaseClient.from('user_data').upsert(payload, { onConflict: 'user_id' });
         if (error) console.error('Sync upsert error:', error.message);
     } catch(e) { console.error('Sync error:', e); }
 }
@@ -4913,9 +4922,9 @@ async function loadFromSupabase() {
     if (!currentUser) return false;
     try {
         const { data, error } = await supabaseClient
-            .from('utilisateur_data')
+            .from('user_data')
             .select('*')
-            .eq('utilisateur_id', currentUser.id)
+            .eq('user_id', currentUser.id)
             .single();
         
         if (error || !data) {
@@ -4923,21 +4932,18 @@ async function loadFromSupabase() {
             return false;
         }
         
-        if (data.ventes) ventes = JSON.parse(data.ventes);
-        if (data.projets) projets = JSON.parse(data.projets);
+        if (data.ventes && Array.isArray(data.ventes)) ventes = data.ventes;
+        if (data.projets && Array.isArray(data.projets)) projets = data.projets;
         if (data.devise) {
             deviseActuelle = data.devise;
             document.querySelectorAll('#deviseActuelle, #deviseActuelleDesktop').forEach(el => {
                 el.textContent = deviseActuelle;
             });
         }
-        if (data.objectif && data.objectif !== 'null') {
-            const objData = JSON.parse(data.objectif);
-            if (objData && objData.personnel !== undefined) {
-                objectifPersonnel = objData.personnel;
-                objectifMensuel = objData.mensuel || null;
-            } else {
-                objectifPersonnel = objData;
+        if (data.objectifs && typeof data.objectifs === 'object') {
+            if (data.objectifs.personnel !== undefined) {
+                objectifPersonnel = data.objectifs.personnel;
+                objectifMensuel = data.objectifs.mensuel || null;
             }
             if (objectifPersonnel && objectifPersonnel.dateFin) {
                 const fin = new Date(objectifPersonnel.dateFin);
@@ -4945,15 +4951,14 @@ async function loadFromSupabase() {
                 objectifJournalier = objectifPersonnel.montantJournalier || 50000;
             }
         }
-        if (data.profil && data.profil !== '{}' && data.profil !== 'null') {
-            _userProfile = JSON.parse(data.profil);
+        if (data.profil && typeof data.profil === 'object' && Object.keys(data.profil).length > 0) {
+            _userProfile = data.profil;
         }
         return true;
     } catch(e) { console.error('Load sync error:', e); return false; }
 }
 
 function chargerDonnees() {
-    // Donnees chargees depuis Supabase dans loadFromSupabase()
     document.querySelectorAll('#deviseActuelle, #deviseActuelleDesktop').forEach(el => {
         el.textContent = deviseActuelle;
     });
@@ -5252,6 +5257,255 @@ function showFelicitation(message) {
     div.innerHTML = '<div style="font-size:32px;margin-bottom:8px;">&#127881;</div><div style="font-size:15px;font-weight:800;">' + message + '</div>';
     document.body.appendChild(div);
     setTimeout(() => { div.style.opacity = '0'; div.style.transition = 'opacity 0.5s'; setTimeout(() => div.remove(), 500); }, 2500);
+}
+
+// ============================================
+// ONBOARDING
+// ============================================
+function showOnboarding() {
+    const popup = document.getElementById('onboardingPopup');
+    if (!popup) return;
+    const profile = getUserProfile();
+    const name = profile?.username || profile?.prenom || 'Boss';
+    const title = document.getElementById('onboardingTitle');
+    if (title) title.textContent = name + ', Felicitations d\'avoir choisi VEKO pour votre business !';
+    popup.style.display = 'flex';
+}
+
+function closeOnboarding() {
+    const popup = document.getElementById('onboardingPopup');
+    if (popup) popup.style.display = 'none';
+    localStorage.setItem('veko_onboarding_done', '1');
+}
+
+function choixBoutiquePhysique() {
+    closeOnboarding();
+    showTab('nouvelle');
+    setTimeout(() => {
+        afficherNotification('Commencez ici : Calculez vos marges ou enregistrez votre premiere vente !', 'info');
+    }, 500);
+}
+
+function choixVenteSociale() {
+    closeOnboarding();
+    showTab('nouvelle');
+    afficherNotification('Mode vente sociale active ! Enregistrez vos ventes manuellement.', 'info');
+}
+
+function choixEcommerce() {
+    closeOnboarding();
+    openShopifyModal();
+}
+
+// ============================================
+// SHOPIFY INTEGRATION
+// ============================================
+var shopifyImportRange = 'all';
+var shopifyConnected = false;
+var shopifyShopDomain = '';
+
+function openShopifyModal() {
+    const modal = document.getElementById('shopifyModal');
+    if (modal) modal.style.display = 'flex';
+}
+
+function closeShopifyModal() {
+    const modal = document.getElementById('shopifyModal');
+    if (modal) modal.style.display = 'none';
+}
+
+function selectShopifyRange(range) {
+    shopifyImportRange = range;
+    document.querySelectorAll('.shopify-range-btn').forEach(btn => {
+        btn.className = btn.getAttribute('data-range') === range ? 'btn btn-primary shopify-range-btn' : 'btn btn-secondary shopify-range-btn';
+    });
+}
+
+function startShopifyOAuth() {
+    const shopInput = document.getElementById('shopifyShopUrl');
+    if (!shopInput || !shopInput.value.trim()) {
+        afficherNotification('Entrez l\'URL de votre boutique Shopify', 'error');
+        return;
+    }
+    if (!currentUser) {
+        afficherNotification('Vous devez etre connecte', 'error');
+        return;
+    }
+    const shop = shopInput.value.trim();
+    const url = `/api/auth/shopify/start?shop=${encodeURIComponent(shop)}&user_id=${currentUser.id}&import_range=${shopifyImportRange}`;
+    window.location.href = url;
+}
+
+async function checkShopifyConnection() {
+    if (!currentUser) return;
+    try {
+        const { data, error } = await supabaseClient
+            .from('shopify_connections')
+            .select('shop_domain')
+            .eq('user_id', currentUser.id)
+            .single();
+
+        const statusDiv = document.getElementById('shopifyStatus');
+        const dashSection = document.getElementById('shopifyDashboardSection');
+
+        if (data && data.shop_domain) {
+            shopifyConnected = true;
+            shopifyShopDomain = data.shop_domain;
+            if (statusDiv) {
+                statusDiv.innerHTML = '<div style="display: flex; align-items: center; gap: 12px; padding: 14px; background: rgba(150,191,72,0.08); border: 1px solid rgba(150,191,72,0.2); border-radius: 12px; margin-bottom: 12px;">' +
+                    '<div style="position: relative;"><i class="fab fa-shopify" style="font-size: 24px; color: #96bf48;"></i><span style="position: absolute; top: -2px; right: -2px; width: 10px; height: 10px; background: #96bf48; border-radius: 50%; border: 2px solid var(--dark-card); animation: pulse 2s infinite;"></span></div>' +
+                    '<div><div style="font-size: 13px; font-weight: 600; color: var(--text-primary);">Connecte a : ' + data.shop_domain + '</div>' +
+                    '<div style="font-size: 11px; color: #96bf48;">Synchronisation active</div></div></div>' +
+                    '<button onclick="disconnectShopify()" style="width: 100%; padding: 12px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); border-radius: 10px; color: var(--accent-red); font-size: 12px; font-weight: 600; cursor: pointer;"><i class="fas fa-unlink" style="margin-right: 6px;"></i>Deconnecter</button>';
+            }
+            if (dashSection) dashSection.style.display = 'block';
+            updateShopifyDashboard();
+        } else {
+            shopifyConnected = false;
+            if (dashSection) dashSection.style.display = 'none';
+        }
+    } catch(e) { console.error('Check Shopify error:', e); }
+}
+
+async function disconnectShopify() {
+    if (!confirm('Deconnecter votre boutique Shopify ?')) return;
+    try {
+        await supabaseClient.from('shopify_connections').delete().eq('user_id', currentUser.id);
+        shopifyConnected = false;
+        shopifyShopDomain = '';
+        afficherNotification('Boutique Shopify deconnectee', 'success');
+        checkShopifyConnection();
+    } catch(e) { console.error('Disconnect error:', e); }
+}
+
+async function syncShopifyOrders(importRange) {
+    if (!currentUser || !shopifyConnected) return;
+    try {
+        let since = '';
+        if (importRange === '1m') {
+            const d = new Date(); d.setMonth(d.getMonth() - 1);
+            since = d.toISOString().split('T')[0];
+        } else if (importRange === '3m') {
+            const d = new Date(); d.setMonth(d.getMonth() - 3);
+            since = d.toISOString().split('T')[0];
+        }
+
+        const url = `/api/shopify/orders?user_id=${currentUser.id}` + (since ? `&since=${since}` : '');
+        const res = await fetch(url);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.orders) return;
+
+        let added = 0;
+        data.orders.forEach(order => {
+            const existingIdx = ventes.findIndex(v => v.shopify_order_id === order.id);
+            if (existingIdx !== -1) return;
+
+            const customer = order.customer || {};
+            const totalPrice = parseFloat(order.total_price) || 0;
+            const nbItems = order.line_items ? order.line_items.reduce((s, li) => s + li.quantity, 0) : 1;
+
+            ventes.push({
+                id: Date.now() + Math.random(),
+                date: order.created_at,
+                nomClient: [customer.first_name, customer.last_name].filter(Boolean).join(' ') || 'Client Shopify',
+                telClient: customer.phone || '',
+                projetId: null,
+                projetNom: 'Shopify',
+                nbPieces: nbItems,
+                prixVenteUnit: nbItems > 0 ? Math.round(totalPrice / nbItems) : totalPrice,
+                prixRevientUnit: 0,
+                ca: totalPrice,
+                coutAcquisition: 0,
+                commissionUnit: 0,
+                commissionTotale: 0,
+                budgetPub: 0,
+                budgetPubProvisoire: false,
+                pasDeFraisPub: true,
+                fraisLivraisonClient: 0,
+                depensesTotales: 0,
+                benefice: totalPrice,
+                source: 'shopify',
+                shopify_order_id: order.id,
+                shopify_status: order.fulfillment_status || 'En attente',
+                statut: order.fulfillment_status === 'fulfilled' ? 'Livre' : 'En attente'
+            });
+            added++;
+        });
+
+        if (added > 0) {
+            sauvegarderDonnees();
+            afficherNotification(added + ' commande(s) Shopify importee(s) !', 'success');
+            try { afficherHistorique(); } catch(e) {}
+            try { chargerDashboard(); } catch(e) {}
+        }
+    } catch(e) { console.error('Sync Shopify orders error:', e); }
+}
+
+function updateShopifyDashboard() {
+    const shopifyVentes = ventes.filter(v => v.source === 'shopify' && !v.retournee);
+    const totalCA = shopifyVentes.reduce((s, v) => s + (v.ca || 0), 0);
+    const livrees = shopifyVentes.filter(v => v.statut === 'Livre');
+    const reelCA = livrees.reduce((s, v) => s + (v.ca || 0), 0);
+    const reelBenefice = livrees.reduce((s, v) => s + (v.benefice || 0), 0);
+    const tauxLivraison = shopifyVentes.length > 0 ? Math.round((livrees.length / shopifyVentes.length) * 100) : 0;
+
+    const el1 = document.getElementById('shopifyTotalCA');
+    const el2 = document.getElementById('shopifyReelCA');
+    const el3 = document.getElementById('shopifyReelBenefice');
+    const el4 = document.getElementById('shopifyTauxLivraison');
+    const el5 = document.getElementById('shopifyTauxBar');
+
+    if (el1) el1.textContent = Math.round(totalCA).toLocaleString() + ' ' + deviseActuelle;
+    if (el2) el2.textContent = Math.round(reelCA).toLocaleString() + ' ' + deviseActuelle;
+    if (el3) el3.textContent = Math.round(reelBenefice).toLocaleString() + ' ' + deviseActuelle;
+    if (el4) el4.textContent = tauxLivraison + '%';
+    if (el5) el5.style.width = tauxLivraison + '%';
+}
+
+// ============================================
+// PROFIL COMPLETION & EMPTY STATES
+// ============================================
+function updateProfilCompletion() {
+    const profile = getUserProfile() || {};
+    let pct = 20;
+    if (profile.username) pct += 10;
+    if (profile.prenom) pct += 10;
+    if (profile.nom) pct += 10;
+    if (profile.telephone) pct += 10;
+    if (ventes.length > 0) pct += 20;
+    if (projets.length > 0) pct += 20;
+    pct = Math.min(100, pct);
+
+    const card = document.getElementById('profilCompletionCard');
+    const pctEl = document.getElementById('profilCompletionPct');
+    const barEl = document.getElementById('profilCompletionBar');
+
+    if (pct >= 100) {
+        if (card) card.style.display = 'none';
+    } else {
+        if (card) card.style.display = 'block';
+        if (pctEl) pctEl.textContent = pct;
+        if (barEl) barEl.style.width = pct + '%';
+    }
+}
+
+// ============================================
+// CHECK SHOPIFY CALLBACK ON LOAD
+// ============================================
+function checkShopifyCallback() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('shopify') === 'success') {
+        const range = params.get('import_range') || 'all';
+        window.history.replaceState(null, '', window.location.pathname);
+        afficherNotification('Boutique Shopify connectee avec succes !', 'success');
+        showFelicitation('Shopify connecte ! Importation en cours...');
+        setTimeout(() => {
+            checkShopifyConnection().then(() => {
+                syncShopifyOrders(range);
+            });
+        }, 1000);
+    }
 }
 
 

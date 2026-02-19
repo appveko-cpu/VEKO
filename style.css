@@ -2651,3 +2651,8 @@
     0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
     100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
 }
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
