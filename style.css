@@ -1007,7 +1007,8 @@
             padding: 20px 0;
             overflow-y: auto;
             overflow-x: hidden;
-            display: block !important;
+            display: flex !important;
+            flex-direction: column;
         }
         
         .desktop-sidebar .nav-text {
@@ -1064,8 +1065,11 @@
         
         .container {
             margin-left: 220px;
-            max-width: calc(100% - 240px);
+            max-width: calc(100% - 220px);
             padding: 20px 30px;
+            padding-top: 80px;
+            box-sizing: border-box;
+            width: calc(100% - 220px);
         }
         
         .bottom-nav {
@@ -1084,19 +1088,17 @@
             display: block !important;
             position: fixed;
             top: 0;
-            left: 70px;
+            left: 220px;
             right: 0;
             background: var(--dark-surface);
             border-bottom: 1px solid var(--diamond-border);
             z-index: 150;
             padding: 12px 24px;
             backdrop-filter: blur(var(--blur-amount));
-            transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
-        .desktop-sidebar:hover ~ .container .top-bar-desktop,
-        .desktop-sidebar:hover + .container .top-bar-desktop {
-            left: 250px;
+        .desktop-sidebar .sidebar-slogan {
+            display: none;
         }
 
         .bento-grid {
@@ -2004,6 +2006,8 @@
         top: calc(100% + 10px);
         right: 0;
         width: 280px;
+        max-height: 80vh;
+        overflow-y: auto;
         background: var(--dark-card);
         backdrop-filter: blur(var(--blur-amount));
         -webkit-backdrop-filter: blur(var(--blur-amount));

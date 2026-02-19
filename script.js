@@ -750,13 +750,15 @@ function generateUsername(email) {
     return base.charAt(0).toUpperCase() + base.slice(1, 6) + num;
 }
 
+var _userProfile = null;
+
 function getUserProfile() {
-    const saved = localStorage.getItem('veko_user_profile');
-    return saved ? JSON.parse(saved) : null;
+    return _userProfile;
 }
 
 function saveUserProfile(profile) {
-    localStorage.setItem('veko_user_profile', JSON.stringify(profile));
+    _userProfile = profile;
+    syncToSupabase();
 }
 
 function getDisplayName() {
@@ -815,11 +817,11 @@ function startRealtimeSync() {
             }, async (payload) => {
                 if (payload.new) {
                     const d = payload.new;
-                    if (d.ventes) { ventes = JSON.parse(d.ventes); localStorage.setItem('nzoi_ventes', JSON.stringify(ventes)); }
-                    if (d.projets) { projets = JSON.parse(d.projets); localStorage.setItem('nzoi_projets', JSON.stringify(projets)); }
-                    if (d.devise) { deviseActuelle = d.devise; localStorage.setItem('veko_devise', deviseActuelle); }
-                    if (d.objectif && d.objectif !== 'null') { objectifPersonnel = JSON.parse(d.objectif); localStorage.setItem('veko_objectif_personnel', JSON.stringify(objectifPersonnel)); }
-                    if (d.profil && d.profil !== '{}') { localStorage.setItem('veko_user_profile', d.profil); }
+                    if (d.ventes) { ventes = JSON.parse(d.ventes); }
+                    if (d.projets) { projets = JSON.parse(d.projets); }
+                    if (d.devise) { deviseActuelle = d.devise; }
+                    if (d.objectif && d.objectif !== 'null') { const o = JSON.parse(d.objectif); if (o.personnel !== undefined) { objectifPersonnel = o.personnel; objectifMensuel = o.mensuel; } else { objectifPersonnel = o; } }
+                    if (d.profil && d.profil !== '{}') { _userProfile = JSON.parse(d.profil); }
                     try { afficherHistorique(); } catch(e) {}
                     try { chargerDashboard(); } catch(e) {}
                     try { afficherProjets(); } catch(e) {}
@@ -1045,16 +1047,11 @@ function initApp() {
 // PROFIL UTILISATEUR
 // ============================================
 function chargerProfil() {
-    const savedName = localStorage.getItem('veko_user_name');
-    const savedObjectif = localStorage.getItem('veko_objectif_jour');
-    
-    if (savedName) {
-        nomUtilisateur = savedName;
-        document.getElementById('profileName').textContent = nomUtilisateur;
-    }
-    
-    if (savedObjectif) {
-        objectifJournalier = Number(savedObjectif);
+    const profile = getUserProfile();
+    if (profile && profile.username) {
+        nomUtilisateur = profile.username;
+        const el = document.getElementById('profileName');
+        if (el) el.textContent = nomUtilisateur;
     }
 }
 
@@ -1064,12 +1061,14 @@ function sauvegarderProfil() {
     
     if (nom) {
         nomUtilisateur = nom;
-        localStorage.setItem('veko_user_name', nom);
-        document.getElementById('profileName').textContent = nom;
+        const el = document.getElementById('profileName');
+        if (el) el.textContent = nom;
+        const profile = getUserProfile() || {};
+        profile.username = nom;
+        saveUserProfile(profile);
     }
     
     objectifJournalier = objectif;
-    localStorage.setItem('veko_objectif_jour', objectif);
     
     hapticFeedback();
     closeModalProfil();
@@ -1773,7 +1772,6 @@ function closeModalDevise() {
 
 function saveDevise() {
     deviseActuelle = document.getElementById('selectDevise').value;
-    localStorage.setItem('veko_devise', deviseActuelle);
     
     document.querySelectorAll('#deviseActuelle, #deviseActuelleDesktop').forEach(el => {
         el.textContent = deviseActuelle;
@@ -3938,8 +3936,10 @@ function chargerDashboard() {
     updateRecapSlide();
 }
 
+var objectifMensuel = null;
+
 function definirObjectif() {
-    const existant = JSON.parse(localStorage.getItem('veko_objectif') || 'null');
+    const existant = objectifMensuel;
     const typeDefaut = existant ? existant.type : 'CA';
     const montantDefaut = existant ? existant.montant : '';
 
@@ -3967,7 +3967,7 @@ function definirObjectif() {
                 <button onclick="fermerObjectifModal()" style="flex:1;padding:12px;background:var(--glass-bg);border:1px solid var(--diamond-border);border-radius:10px;color:var(--text-secondary);font-size:13px;font-weight:600;cursor:pointer;">Annuler</button>
                 <button onclick="sauverObjectif()" style="flex:1;padding:12px;background:linear-gradient(135deg,#f59e0b,#d97706);border:none;border-radius:10px;color:white;font-size:13px;font-weight:700;cursor:pointer;">Valider</button>
             </div>
-            ${existant ? '<button onclick="supprimerObjectif()" style="width:100%;margin-top:10px;padding:10px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);border-radius:10px;color:var(--accent-red);font-size:12px;cursor:pointer;font-weight:600;">Supprimer l\'objectif</button>' : ''}
+            ${existant ? '<button onclick="supprimerObjectifMensuel()" style="width:100%;margin-top:10px;padding:10px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);border-radius:10px;color:var(--accent-red);font-size:12px;cursor:pointer;font-weight:600;">Supprimer l\'objectif</button>' : ''}
         </div>
     `;
     document.body.appendChild(overlay);
@@ -3985,17 +3985,19 @@ function sauverObjectif() {
     if (!montant || montant <= 0) return;
     const now = new Date();
     const obj = { type: type, montant: montant, mois: now.getMonth(), annee: now.getFullYear() };
-    localStorage.setItem('veko_objectif', JSON.stringify(obj));
+    objectifMensuel = obj;
     fermerObjectifModal();
     afficherObjectifMensuel();
     try { chargerDashboard(); } catch(e) {}
+    syncToSupabase();
 }
 
-function supprimerObjectif() {
-    localStorage.removeItem('veko_objectif');
+function supprimerObjectifMensuel() {
+    objectifMensuel = null;
     fermerObjectifModal();
     document.getElementById('cardObjectif').style.display = 'none';
     try { chargerDashboard(); } catch(e) {}
+    syncToSupabase();
 }
 
 function afficherObjectifMensuel() {
@@ -4486,23 +4488,23 @@ function saveObjectif() {
         joursRestants: joursRestants
     };
     
-    localStorage.setItem('veko_objectif_personnel', JSON.stringify(objectifPersonnel));
     objectifJournalier = montantJournalier;
     
     closeModalObjectif();
     hapticFeedback(30);
     afficherNotification('Objectif defini: ' + Number(montant).toLocaleString() + ' ' + deviseActuelle + ' en ' + joursTotal + ' jours', 'success');
     updateActivityRing();
+    syncToSupabase();
 }
 
 function supprimerObjectif() {
     if (confirm('Voulez-vous vraiment supprimer cet objectif ?')) {
         objectifPersonnel = null;
-        localStorage.removeItem('veko_objectif_personnel');
         objectifJournalier = 50000;
         hapticFeedback(30);
         afficherNotification('Objectif supprime', 'success');
         updateActivityRing();
+        syncToSupabase();
     }
 }
 
@@ -4863,11 +4865,9 @@ function importerDonnees() {
                 }
                 if (data.nomUtilisateur) {
                     nomUtilisateur = data.nomUtilisateur;
-                    localStorage.setItem('veko_user_name', nomUtilisateur);
                 }
                 if (data.objectifJour) {
                     objectifJournalier = data.objectifJour;
-                    localStorage.setItem('veko_objectif_jour', objectifJournalier);
                 }
                 
                 sauvegarderDonnees();
@@ -4886,11 +4886,9 @@ function importerDonnees() {
 }
 
 // ============================================
-// SAUVEGARDE LOCALE
+// SAUVEGARDE EN LIGNE (SUPABASE UNIQUEMENT)
 // ============================================
 function sauvegarderDonnees() {
-    localStorage.setItem('nzoi_ventes', JSON.stringify(ventes));
-    localStorage.setItem('nzoi_projets', JSON.stringify(projets));
     syncToSupabase();
 }
 
@@ -4902,8 +4900,8 @@ async function syncToSupabase() {
             ventes: JSON.stringify(ventes),
             projets: JSON.stringify(projets),
             devise: deviseActuelle,
-            objectif: JSON.stringify(objectifPersonnel),
-            profil: localStorage.getItem('veko_user_profile') || '{}',
+            objectif: JSON.stringify({ personnel: objectifPersonnel, mensuel: objectifMensuel }),
+            profil: JSON.stringify(_userProfile || {}),
             updated_at: new Date().toISOString()
         };
         const { error } = await supabaseClient.from('utilisateur_data').upsert(payload, { onConflict: 'utilisateur_id' });
@@ -4921,64 +4919,44 @@ async function loadFromSupabase() {
             .single();
         
         if (error || !data) {
-            console.log('No cloud data found, pushing local data...');
             await syncToSupabase();
             return false;
         }
         
-        if (data.ventes) {
-            ventes = JSON.parse(data.ventes);
-            localStorage.setItem('nzoi_ventes', JSON.stringify(ventes));
-        }
-        if (data.projets) {
-            projets = JSON.parse(data.projets);
-            localStorage.setItem('nzoi_projets', JSON.stringify(projets));
-        }
+        if (data.ventes) ventes = JSON.parse(data.ventes);
+        if (data.projets) projets = JSON.parse(data.projets);
         if (data.devise) {
             deviseActuelle = data.devise;
-            localStorage.setItem('veko_devise', deviseActuelle);
             document.querySelectorAll('#deviseActuelle, #deviseActuelleDesktop').forEach(el => {
                 el.textContent = deviseActuelle;
             });
         }
         if (data.objectif && data.objectif !== 'null') {
-            objectifPersonnel = JSON.parse(data.objectif);
-            localStorage.setItem('veko_objectif_personnel', JSON.stringify(objectifPersonnel));
+            const objData = JSON.parse(data.objectif);
+            if (objData && objData.personnel !== undefined) {
+                objectifPersonnel = objData.personnel;
+                objectifMensuel = objData.mensuel || null;
+            } else {
+                objectifPersonnel = objData;
+            }
+            if (objectifPersonnel && objectifPersonnel.dateFin) {
+                const fin = new Date(objectifPersonnel.dateFin);
+                objectifPersonnel.joursRestants = Math.max(0, Math.ceil((fin - new Date()) / (1000 * 60 * 60 * 24)));
+                objectifJournalier = objectifPersonnel.montantJournalier || 50000;
+            }
         }
-        if (data.profil && data.profil !== '{}') {
-            localStorage.setItem('veko_user_profile', data.profil);
+        if (data.profil && data.profil !== '{}' && data.profil !== 'null') {
+            _userProfile = JSON.parse(data.profil);
         }
         return true;
     } catch(e) { console.error('Load sync error:', e); return false; }
 }
 
 function chargerDonnees() {
-    const dataVentes = localStorage.getItem('nzoi_ventes');
-    const dataProjets = localStorage.getItem('nzoi_projets');
-    const dataDevise = localStorage.getItem('veko_devise');
-    const dataObjectif = localStorage.getItem('veko_objectif_personnel');
-    
-    if (dataVentes) {
-        ventes = JSON.parse(dataVentes);
-    }
-    if (dataProjets) {
-        projets = JSON.parse(dataProjets);
-    }
-    if (dataDevise) {
-        deviseActuelle = dataDevise;
-        document.querySelectorAll('#deviseActuelle, #deviseActuelleDesktop').forEach(el => {
-            el.textContent = deviseActuelle;
-        });
-    }
-    if (dataObjectif) {
-        objectifPersonnel = JSON.parse(dataObjectif);
-        if (objectifPersonnel) {
-            const fin = new Date(objectifPersonnel.dateFin);
-            const aujourdhui = new Date();
-            objectifPersonnel.joursRestants = Math.max(0, Math.ceil((fin - aujourdhui) / (1000 * 60 * 60 * 24)));
-            objectifJournalier = objectifPersonnel.montantJournalier || 50000;
-        }
-    }
+    // Donnees chargees depuis Supabase dans loadFromSupabase()
+    document.querySelectorAll('#deviseActuelle, #deviseActuelleDesktop').forEach(el => {
+        el.textContent = deviseActuelle;
+    });
 }
 
 // ============================================
