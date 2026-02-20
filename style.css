@@ -1065,11 +1065,13 @@
         
         .container {
             margin-left: 220px;
-            padding: 20px 30px;
+            margin-right: 0;
+            padding: 20px 40px;
             padding-top: 80px;
+            padding-bottom: 40px;
             box-sizing: border-box;
             width: auto;
-            max-width: none;
+            max-width: 1200px;
         }
         
         .bottom-nav {
@@ -1986,9 +1988,17 @@
 
     /* MAIN CONTENT SPACING */
     .main-content {
-        margin-top: 70px;
-        margin-bottom: 100px;
-        padding-top: 10px;
+        padding-top: 80px;
+        padding-bottom: 100px;
+        min-height: 100vh;
+        box-sizing: border-box;
+    }
+
+    @media (min-width: 1024px) {
+        .main-content {
+            padding-top: 0;
+            padding-bottom: 40px;
+        }
     }
     
     /* DESKTOP TOP BAR - Hidden by default on mobile */
@@ -2655,4 +2665,32 @@
 @keyframes pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.4; }
+}
+
+/* Desktop page-parametres fix */
+@media (min-width: 1024px) {
+    #page-parametres > div {
+        padding-top: 0 !important;
+        max-width: 700px;
+    }
+}
+
+/* Ensure main content is visible with fixed nav */
+.page {
+    width: 100%;
+}
+
+/* Objective slider desktop fix */
+@media (min-width: 1024px) {
+    .objective-slider-desktop {
+        display: flex !important;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+    }
+    
+    .objective-slide {
+        min-width: 300px;
+        flex-shrink: 0;
+        scroll-snap-align: start;
+    }
 }

@@ -191,7 +191,7 @@ function updateProfileDropdown() {
     
     nameEls.forEach(el => el.textContent = nomUtilisateur);
     
-    const beneficeTotal = calculerBeneficeTotal();
+    const beneficeTotal = ventes.filter(v => !v.retournee).reduce((sum, v) => sum + (v.benefice || 0), 0);
     const niveau = getNiveauUtilisateur(beneficeTotal);
     
     levelEls.forEach(el => {
@@ -1132,6 +1132,7 @@ function showDailyDigest() {
 function updateMicroBadge() {
     const beneficeTotal = ventes.filter(v => !v.retournee).reduce((sum, v) => sum + v.benefice, 0);
     const container = document.getElementById('userMicroBadge');
+    if (!container) return;
     const previousBadge = localStorage.getItem('veko_badge_level') || 'debutant';
     
     let badge = '';
@@ -3928,6 +3929,7 @@ function chargerDashboard() {
         animateCounter(kpiNb, ventesMois.length, 800, '');
     }
     
+    afficherVentesRecentes();
     afficherObjectifMensuel();
     afficherProduitTop(ventesMois);
     afficherTauxRetour(ventesMois);
@@ -3944,6 +3946,40 @@ function chargerDashboard() {
     chargerProduitsRisque();
     updateObjectiveSlide();
     updateRecapSlide();
+}
+
+function afficherVentesRecentes() {
+    const container = document.getElementById('ventesRecentesList');
+    if (!container) return;
+    
+    if (ventes.length === 0) {
+        container.innerHTML = '<div class="empty-state" style="padding: 20px;">' +
+            '<i class="fas fa-shopping-cart" style="font-size: 32px; color: var(--text-muted); margin-bottom: 10px; display: block;"></i>' +
+            '<p style="font-size: 12px; color: var(--text-muted); margin: 0;">Aucune vente enregistree.<br>Commencez par ajouter votre premiere vente !</p>' +
+            '<button onclick="showTab(\'nouvelle\')" class="btn btn-primary" style="margin-top: 12px; padding: 10px 20px; font-size: 12px;">' +
+            '<i class="fas fa-plus"></i> Ajouter une vente</button></div>';
+        return;
+    }
+    
+    const recentes = ventes.slice(-5).reverse();
+    let html = '';
+    recentes.forEach(v => {
+        const date = new Date(v.date);
+        const dateStr = date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+        const benefColor = v.benefice >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+        const statusColor = v.statut === 'Livre' ? 'var(--accent-green)' : v.statut === 'Retourne' ? 'var(--accent-red)' : 'var(--accent-orange)';
+        const statusIcon = v.statut === 'Livre' ? 'fa-check-circle' : v.statut === 'Retourne' ? 'fa-undo' : 'fa-clock';
+        
+        html += '<div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--diamond-border);">' +
+            '<div style="display: flex; align-items: center; gap: 10px;">' +
+            '<div style="width: 36px; height: 36px; border-radius: 10px; background: var(--glass-bg); display: flex; align-items: center; justify-content: center;">' +
+            '<i class="fas ' + statusIcon + '" style="color: ' + statusColor + '; font-size: 14px;"></i></div>' +
+            '<div><div style="font-size: 13px; font-weight: 600; color: var(--text-primary);">' + (v.nomClient || v.projetNom || 'Vente') + '</div>' +
+            '<div style="font-size: 10px; color: var(--text-muted);">' + dateStr + ' - ' + v.nbPieces + ' piece(s)</div></div></div>' +
+            '<div style="text-align: right;"><div style="font-size: 13px; font-weight: 700; color: ' + benefColor + ';">' + (v.benefice >= 0 ? '+' : '') + Math.round(v.benefice).toLocaleString() + ' F</div>' +
+            '<div style="font-size: 10px; color: var(--text-muted);">CA: ' + Math.round(v.ca).toLocaleString() + ' F</div></div></div>';
+    });
+    container.innerHTML = html;
 }
 
 var objectifMensuel = null;
@@ -5265,12 +5301,17 @@ function showFelicitation(message) {
 // ============================================
 function showOnboarding() {
     const popup = document.getElementById('onboardingPopup');
-    if (!popup) return;
+    if (!popup) {
+        console.error('Onboarding popup not found');
+        return;
+    }
     const profile = getUserProfile();
     const name = profile?.username || profile?.prenom || 'Boss';
     const title = document.getElementById('onboardingTitle');
     if (title) title.textContent = name + ', Felicitations d\'avoir choisi VEKO pour votre business !';
     popup.style.display = 'flex';
+    popup.style.alignItems = 'center';
+    popup.style.justifyContent = 'center';
 }
 
 function closeOnboarding() {
@@ -5339,24 +5380,32 @@ function startShopifyOAuth() {
 
 async function checkShopifyConnection() {
     if (!currentUser) return;
+    const statusDiv = document.getElementById('shopifyStatus');
+    const dashSection = document.getElementById('shopifyDashboardSection');
+    
+    const notConnectedHTML = '<div style="display: flex; align-items: center; gap: 12px; padding: 14px; background: var(--glass-bg); border: 1px solid var(--diamond-border); border-radius: 12px; margin-bottom: 12px;">' +
+        '<i class="fab fa-shopify" style="font-size: 24px; color: var(--text-muted);"></i>' +
+        '<div><div style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Aucune boutique connectee.</div>' +
+        '<div style="font-size: 11px; color: var(--text-muted);">Connectez votre boutique Shopify pour synchroniser vos commandes.</div></div></div>' +
+        '<button onclick="openShopifyModal()" style="width: 100%; padding: 13px; background: linear-gradient(135deg, #96bf48 0%, #5e8e3e 100%); color: white; border: none; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">' +
+        '<i class="fab fa-shopify"></i> Connecter ma boutique</button>';
+
     try {
         const { data, error } = await supabaseClient
             .from('shopify_connections')
-            .select('shop_domain')
+            .select('shop_domain, access_token')
             .eq('user_id', currentUser.id)
             .maybeSingle();
-
-        const statusDiv = document.getElementById('shopifyStatus');
-        const dashSection = document.getElementById('shopifyDashboardSection');
 
         if (error) {
             console.error('Shopify check error:', error.message);
             shopifyConnected = false;
+            if (statusDiv) statusDiv.innerHTML = notConnectedHTML;
             if (dashSection) dashSection.style.display = 'none';
             return;
         }
 
-        if (data && data.shop_domain) {
+        if (data && data.shop_domain && data.access_token) {
             shopifyConnected = true;
             shopifyShopDomain = data.shop_domain;
             if (statusDiv) {
@@ -5370,9 +5419,16 @@ async function checkShopifyConnection() {
             updateShopifyDashboard();
         } else {
             shopifyConnected = false;
+            shopifyShopDomain = '';
+            if (statusDiv) statusDiv.innerHTML = notConnectedHTML;
             if (dashSection) dashSection.style.display = 'none';
         }
-    } catch(e) { console.error('Check Shopify error:', e); }
+    } catch(e) {
+        console.error('Check Shopify error:', e);
+        shopifyConnected = false;
+        if (statusDiv) statusDiv.innerHTML = notConnectedHTML;
+        if (dashSection) dashSection.style.display = 'none';
+    }
 }
 
 async function disconnectShopify() {
@@ -5503,16 +5559,33 @@ function updateProfilCompletion() {
 // ============================================
 function checkShopifyCallback() {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('shopify') === 'success') {
+    const shopifyStatus = params.get('shopify');
+    
+    if (shopifyStatus === 'success') {
         const range = params.get('import_range') || 'all';
         window.history.replaceState(null, '', window.location.pathname);
         afficherNotification('Boutique Shopify connectee avec succes !', 'success');
         showFelicitation('Shopify connecte ! Importation en cours...');
         setTimeout(() => {
             checkShopifyConnection().then(() => {
-                syncShopifyOrders(range);
+                if (shopifyConnected) {
+                    syncShopifyOrders(range);
+                }
+                showTab('parametres');
             });
         }, 1000);
+    } else if (shopifyStatus === 'error') {
+        const reason = params.get('reason') || 'unknown';
+        const detail = params.get('detail') || '';
+        window.history.replaceState(null, '', window.location.pathname);
+        let msg = 'Erreur de connexion Shopify';
+        if (reason === 'token_exchange') msg = 'Erreur lors de l\'echange du token Shopify. Reessayez.';
+        else if (reason === 'db_insert') msg = 'Erreur d\'enregistrement dans la base de donnees. ' + detail;
+        else if (reason === 'server_config') msg = 'Configuration serveur manquante.';
+        else if (reason === 'no_token') msg = 'Shopify n\'a pas retourne de token.';
+        else if (reason === 'missing_params') msg = 'Parametres OAuth manquants.';
+        afficherNotification(msg, 'error');
+        showTab('parametres');
     }
 }
 
