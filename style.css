@@ -1065,11 +1065,11 @@
         
         .container {
             margin-left: 220px;
-            max-width: calc(100% - 220px);
             padding: 20px 30px;
             padding-top: 80px;
             box-sizing: border-box;
-            width: calc(100% - 220px);
+            width: auto;
+            max-width: none;
         }
         
         .bottom-nav {

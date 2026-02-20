@@ -1049,6 +1049,7 @@ function initApp() {
     
     setTimeout(() => {
         chargerDashboard();
+        updateProfilCompletion();
     }, 100);
 }
 
@@ -5343,10 +5344,17 @@ async function checkShopifyConnection() {
             .from('shopify_connections')
             .select('shop_domain')
             .eq('user_id', currentUser.id)
-            .single();
+            .maybeSingle();
 
         const statusDiv = document.getElementById('shopifyStatus');
         const dashSection = document.getElementById('shopifyDashboardSection');
+
+        if (error) {
+            console.error('Shopify check error:', error.message);
+            shopifyConnected = false;
+            if (dashSection) dashSection.style.display = 'none';
+            return;
+        }
 
         if (data && data.shop_domain) {
             shopifyConnected = true;

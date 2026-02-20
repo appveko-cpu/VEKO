@@ -37,7 +37,7 @@ export default async function handler(req, res) {
         const tokenData = await tokenRes.json();
         const accessToken = tokenData.access_token;
 
-        const upsertRes = await fetch(`${supabaseUrl}/rest/v1/shopify_connections`, {
+        const upsertRes = await fetch(`${supabaseUrl}/rest/v1/shopify_connections?on_conflict=shop_domain`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
