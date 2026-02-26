@@ -2,6 +2,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useDevise } from "@/context/DeviseContext";
 import { createClient } from "@/lib/supabase/client";
+import TooltipGuide from "@/components/onboarding/TooltipGuide";
 
 type Client = {
   id: string;
@@ -70,9 +71,17 @@ export default function ClientsClient() {
 
           <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
             <i className="fas fa-users" style={{ color: "var(--accent-blue)", fontSize: "22px" }}></i>
-            <span style={{ fontSize: "20px", fontWeight: 800, color: "var(--text-primary)" }}>
-              Mes Clients
-            </span>
+            <TooltipGuide
+              id="clients_intro"
+              title="Vos clients en un coup d'oeil"
+              message="Ici vous retrouvez tous vos clients avec leur historique d'achats, leur CA total et leur bénéfice généré."
+              icon="fas fa-users"
+              position="bottom"
+            >
+              <span style={{ fontSize: "20px", fontWeight: 800, color: "var(--text-primary)" }}>
+                Mes Clients
+              </span>
+            </TooltipGuide>
           </div>
 
           <input

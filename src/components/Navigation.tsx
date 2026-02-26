@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import ProfileDropdown from "./ProfileDropdown";
 import NotificationPanel from "./NotificationPanel";
@@ -40,6 +40,10 @@ export default function Navigation() {
   const [deviseOpen, setDeviseOpen] = useState(false);
   const [fabOpen, setFabOpen] = useState(false);
   const { deviseActuelle } = useDevise();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
 
   const isActive = (path: string) => {
     if (path === "/dashboard") return pathname === "/dashboard";

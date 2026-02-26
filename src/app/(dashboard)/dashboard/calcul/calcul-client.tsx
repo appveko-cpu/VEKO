@@ -164,7 +164,6 @@ export default function CalcClient() {
     setFraisLivraisonClient("0");
     setHasCommission(false);
     setCommissionParPiece("0");
-    setSelectedProduct("");
   }
 
   async function handleSaveVente() {
@@ -356,64 +355,22 @@ export default function CalcClient() {
           )}
 
           {hasPub && (
-            <>
-              <Field
-                label={`BUDGET PUBLICITÉ (${devisePubActive || deviseActuelle})`}
-                hint={pubIsProvisoire ? <span style={{ color: "#f97316", marginLeft: "8px", fontWeight: 700 }}>(provisoire)</span> : null}
-              >
-                <input className="form-input" type="number" min="0" value={budgetPub} onChange={(e) => setBudgetPub(e.target.value)} onWheel={(e) => (e.target as HTMLInputElement).blur()} placeholder="0" />
-              </Field>
-
-              <div style={{ marginTop: "-8px", marginBottom: "16px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
-                  <span style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 700, whiteSpace: "nowrap" }}>
-                    <i className="fas fa-coins" style={{ marginRight: "5px", color: "#f59e0b" }}></i>
-                    Devise du budget pub :
-                  </span>
-                  <input
-                    type="text"
-                    value={devisePub}
-                    onChange={(e) => setDevisePub(e.target.value.toUpperCase())}
-                    placeholder={deviseActuelle}
-                    maxLength={10}
-                    style={{
-                      width: "110px", padding: "7px 10px",
-                      background: "var(--input-bg)", border: "1px solid var(--diamond-border)",
-                      borderRadius: "8px", color: "var(--text-primary)",
-                      fontSize: "12px", fontWeight: 700, outline: "none", textTransform: "uppercase",
-                    }}
-                  />
-                </div>
-                {pubEstDifferente && (
-                  <div style={{ background: "rgba(102,126,234,0.1)", border: "1px solid rgba(102,126,234,0.25)", borderRadius: "12px", padding: "12px 14px" }}>
-                    <div style={{ fontSize: "11px", color: "#a78bfa", fontWeight: 700, marginBottom: "10px" }}>
-                      <i className="fas fa-exchange-alt" style={{ marginRight: "6px" }}></i>
-                      Taux de conversion
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <span style={{ fontSize: "12px", color: "var(--text-secondary)", fontWeight: 700, whiteSpace: "nowrap" }}>
-                        1 {devisePubActive} =
-                      </span>
-                      <input
-                        type="number" min="0" value={tauxPub}
-                        onChange={(e) => setTauxPub(e.target.value)} placeholder="1"
-                        onWheel={(e) => (e.target as HTMLInputElement).blur()}
-                        style={{ flex: 1, padding: "7px 10px", background: "var(--input-bg)", border: "1px solid var(--diamond-border)", borderRadius: "8px", color: "var(--text-primary)", fontSize: "12px", fontWeight: 700, outline: "none" }}
-                      />
-                      <span style={{ fontSize: "12px", color: "var(--text-secondary)", fontWeight: 700, whiteSpace: "nowrap" }}>
-                        {deviseActuelle}
-                      </span>
-                    </div>
-                    {budgetPubBrut > 0 && tauxPubNum > 0 && (
-                      <div style={{ marginTop: "8px", fontSize: "12px", color: "#10b981", fontWeight: 700 }}>
-                        <i className="fas fa-check-circle" style={{ marginRight: "5px" }}></i>
-                        {budgetPubBrut} {devisePubActive} = {fmt(budgetPubConverti, deviseActuelle)} utilisé dans les calculs
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </>
+            <div style={{
+              background: "var(--dark-elevated)",
+              border: "1px solid var(--diamond-border)",
+              borderRadius: "12px",
+              padding: "14px 16px",
+              marginBottom: "16px",
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "10px",
+              opacity: 0.7,
+            }}>
+              <i className="fas fa-clock" style={{ color: "#f59e0b", fontSize: "16px", marginTop: "2px", flexShrink: 0 }}></i>
+              <span style={{ fontSize: "13px", color: "var(--text-muted)", lineHeight: 1.5 }}>
+                Le calcul sur le budget publicitaire se fait à la fin de la journée, il est à 0 provisoirement. N&apos;oubliez pas de le faire en fin de journée pour un calcul réel.
+              </span>
+            </div>
           )}
 
           {userProfile.livraisonEnabled && (
@@ -489,8 +446,7 @@ export default function CalcClient() {
               message="Tout le dashboard se mettra a jour en temps reel."
               icon="fas fa-target"
               position="top"
-              primaryAction="Enregistrer ma premiere vente"
-              onPrimaryClick={handleSaveVente}
+              primaryAction="OK, j'ai compris"
               condition={ventes.length === 0}
             >
               <button

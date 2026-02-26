@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useDevise } from "@/context/DeviseContext";
 import { useData } from "@/context/DataContext";
 import { useToast } from "@/context/ToastContext";
+import TooltipGuide from "@/components/onboarding/TooltipGuide";
 
 type Periode = "today" | "week" | "month" | "all";
 
@@ -315,7 +316,15 @@ export default function CommandesClient() {
         <div className="card" style={{ marginBottom: "12px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
             <i className="fas fa-list" style={{ color: "var(--accent-blue)", fontSize: "18px" }}></i>
-            <span style={{ fontSize: "18px", fontWeight: 800, color: "var(--text-primary)" }}>Detail des Commandes</span>
+            <TooltipGuide
+              id="commandes_intro"
+              title="Toutes vos ventes ici"
+              message="Retrouvez l'historique complet de vos commandes. Filtrez par période, marquez des retours ou supprimez des ventes."
+              icon="fas fa-receipt"
+              position="bottom"
+            >
+              <span style={{ fontSize: "18px", fontWeight: 800, color: "var(--text-primary)" }}>Detail des Commandes</span>
+            </TooltipGuide>
           </div>
 
           {loading ? (

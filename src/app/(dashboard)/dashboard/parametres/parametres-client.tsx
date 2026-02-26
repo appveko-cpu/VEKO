@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
+import TooltipGuide from "@/components/onboarding/TooltipGuide";
 
 const INDICATIFS = [
   { code: "+237", pays: "Cameroun", flag: "CM" },
@@ -316,9 +317,17 @@ export default function ParametresClient() {
         <div className="card" style={{ padding: "24px", cursor: "default" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
             <i className="fas fa-user-pen" style={{ color: "var(--accent-blue)", fontSize: "18px" }}></i>
-            <span style={{ fontSize: "17px", fontWeight: 800, color: "var(--text-primary)" }}>
-              Informations personnelles
-            </span>
+            <TooltipGuide
+              id="parametres_intro"
+              title="Vos paramètres VEKO"
+              message="Mettez à jour votre profil, changez votre mot de passe et gérez vos intégrations (Shopify, etc.)."
+              icon="fas fa-cog"
+              position="bottom"
+            >
+              <span style={{ fontSize: "17px", fontWeight: 800, color: "var(--text-primary)" }}>
+                Informations personnelles
+              </span>
+            </TooltipGuide>
           </div>
 
           <form onSubmit={handleSaveProfil}>

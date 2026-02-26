@@ -31,7 +31,7 @@ export default function TooltipGuide({
   secondaryAction,
   onPrimaryClick,
   onSecondaryClick,
-  delay = 500,
+  delay = 0,
   condition = true,
 }: TooltipGuideProps) {
   const { isTooltipSeen, markTooltipSeen } = useOnboarding();

@@ -1,6 +1,7 @@
 "use client";
 import { useState, useMemo, useEffect } from "react";
 import { useDevise } from "@/context/DeviseContext";
+import TooltipGuide from "@/components/onboarding/TooltipGuide";
 
 type SourceType = "local" | "import" | "production";
 type SourceTypeNullable = SourceType | null;
@@ -942,7 +943,15 @@ export default function LaboClient() {
                 <i className="fas fa-flask"></i>
               </div>
               <div>
-                <div style={{ fontSize: "20px", fontWeight: 900, color: "white" }}>Laboratoire des Prix</div>
+                <TooltipGuide
+                  id="labo_intro"
+                  title="Le Laboratoire des Prix"
+                  message="Simulez votre produit en 3 étapes : vision, acquisition, charges. Obtenez le prix optimal et le seuil de rentabilité avant de vendre."
+                  icon="fas fa-flask"
+                  position="bottom"
+                >
+                  <div style={{ fontSize: "20px", fontWeight: 900, color: "white" }}>Laboratoire des Prix</div>
+                </TooltipGuide>
                 <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.7)", marginTop: "2px" }}>
                   Calcule le prix optimal de ton produit
                 </div>
