@@ -747,7 +747,7 @@ export default function DashboardClient() {
 
         {/* OBJECTIF GENERAL */}
         {activeGoal && goalStats && (
-          <div className="card" style={{ background: "linear-gradient(135deg, rgba(16,185,129,0.08), rgba(59,130,246,0.05))", border: "1px solid rgba(16,185,129,0.2)" }}>
+          <div className="card" style={{ background: "linear-gradient(135deg, rgba(16,185,129,0.08), rgba(16,185,129,0.03))", border: "1px solid rgba(16,185,129,0.2)" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <div style={{
@@ -790,7 +790,7 @@ export default function DashboardClient() {
               <div style={{ 
                 fontSize: "32px", 
                 fontWeight: 900, 
-                color: goalStats.progressPercent >= 100 ? "#10b981" : goalStats.progressPercent >= 70 ? "#f59e0b" : "#3b82f6",
+                color: goalStats.progressPercent >= 100 ? "#10b981" : goalStats.progressPercent >= 70 ? "#f59e0b" : "#ef4444",
                 marginBottom: "4px",
               }}>
                 {goalStats.progressPercent.toFixed(0)}%
@@ -817,7 +817,7 @@ export default function DashboardClient() {
                   ? "linear-gradient(90deg, #10b981, #34d399)" 
                   : goalStats.progressPercent >= 70 
                     ? "linear-gradient(90deg, #f59e0b, #fbbf24)"
-                    : "linear-gradient(90deg, #3b82f6, #60a5fa)",
+                    : "linear-gradient(90deg, #ef4444, #f87171)",
                 borderRadius: "7px",
                 transition: "width 0.5s ease",
               }} />

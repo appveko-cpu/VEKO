@@ -290,7 +290,7 @@ export default function ParametresClient() {
               background: "var(--gradient-primary)",
               display: "flex", alignItems: "center", justifyContent: "center",
               fontSize: "26px", fontWeight: 900, color: "#fff",
-              flexShrink: 0, boxShadow: "0 4px 20px rgba(59,130,246,0.35)"
+              flexShrink: 0, boxShadow: "0 4px 20px rgba(16,185,129,0.35)"
             }}>
               {initiales || "U"}
             </div>
@@ -304,8 +304,8 @@ export default function ParametresClient() {
               <div style={{
                 display: "inline-flex", alignItems: "center", gap: "6px",
                 marginTop: "8px", padding: "4px 12px", borderRadius: "20px",
-                background: "rgba(59,130,246,0.15)", border: "1px solid rgba(59,130,246,0.25)",
-                fontSize: "11px", fontWeight: 700, color: "var(--accent-blue)"
+                background: "linear-gradient(135deg, #cd7f32 0%, #8b4513 100%)", border: "none",
+                fontSize: "11px", fontWeight: 700, color: "white"
               }}>
                 <i className="fas fa-medal"></i>
                 Bronze
