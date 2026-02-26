@@ -77,12 +77,23 @@ export default function ProduitsClient() {
     const cm = hasCommission ? (parseFloat(commission) || 0) : 0;
     const na = nbArticles.trim() !== "" ? parseInt(nbArticles, 10) : undefined;
 
+    let success = false;
     if (editId) {
-      await updateProduit(editId, { nom: nom.trim(), prix_revient: pr, frais_transport: ft, prix_vente: pv, commission: cm, nb_articles: na });
-      showToast("Produit mis à jour !", "success");
+      success = await updateProduit(editId, { nom: nom.trim(), prix_revient: pr, frais_transport: ft, prix_vente: pv, commission: cm, nb_articles: na });
+      if (success) {
+        showToast("Produit mis à jour !", "success");
+      } else {
+        showToast("Erreur lors de la mise à jour. Veuillez réessayer.", "error");
+        return;
+      }
     } else {
-      await addProduit({ nom: nom.trim(), prix_revient: pr, frais_transport: ft, prix_vente: pv, commission: cm, nb_articles: na });
-      showToast("Produit ajouté !", "success");
+      success = await addProduit({ nom: nom.trim(), prix_revient: pr, frais_transport: ft, prix_vente: pv, commission: cm, nb_articles: na });
+      if (success) {
+        showToast("Produit ajouté !", "success");
+      } else {
+        showToast("Erreur lors de l'enregistrement. Veuillez réessayer.", "error");
+        return;
+      }
     }
     resetForm(); setShowForm(false);
   }

@@ -87,29 +87,64 @@ function fmt(n: number, d: string) {
   return n.toLocaleString("fr-FR") + " " + d;
 }
 
+function fmtRounded(n: number, d: string) {
+  const rounded = Math.round(n);
+  const exact = Math.round(n * 100) / 100;
+  if (rounded === exact) {
+    return rounded.toLocaleString("fr-FR") + " " + d;
+  }
+  return rounded.toLocaleString("fr-FR") + " " + d + " (" + exact.toLocaleString("fr-FR") + ")";
+}
+
 function genConseil(calc: CalcResult, devise: string): string {
   const parts: string[] = [];
-  if (calc.marge >= 30) {
-    parts.push(`Bonne stratégie ! A ${fmt(Math.round(calc.ps), devise)} avec une marge de ${Math.round(calc.marge)}%, vous avez un business solide.`);
-  } else if (calc.marge >= 15) {
-    parts.push(`Stratégie correcte à ${fmt(Math.round(calc.ps), devise)} avec une marge de ${Math.round(calc.marge)}%. Vous couvrez vos frais mais la marge reste fragile.`);
+  
+  if (calc.marge >= 40) {
+    parts.push(`EXCELLENT ! Avec une marge de ${Math.round(calc.marge)}% a ${fmt(Math.round(calc.ps), devise)}, votre strategie de prix est tres solide. Vous avez une marge de securite confortable pour absorber les imprevus (retours, casse, promotions) tout en degageant un bon benefice.`);
+  } else if (calc.marge >= 30) {
+    parts.push(`BONNE STRATEGIE ! A ${fmt(Math.round(calc.ps), devise)} avec ${Math.round(calc.marge)}% de marge, vous etes dans une zone de confort. Votre prix permet de couvrir vos frais avec une reserve pour les aleas du commerce.`);
+  } else if (calc.marge >= 20) {
+    parts.push(`STRATEGIE CORRECTE mais attention. Votre marge de ${Math.round(calc.marge)}% a ${fmt(Math.round(calc.ps), devise)} vous permet de fonctionner, mais elle reste fragile. Une promotion de 15% ou quelques retours pourraient vous mettre dans le rouge.`);
+  } else if (calc.marge >= 10) {
+    parts.push(`ATTENTION - MARGE SERREE ! Avec seulement ${Math.round(calc.marge)}% de marge, vous travaillez sur une corde raide. Le moindre imprévu (augmentation fournisseur, retour client, remise commerciale) vous fera perdre de l'argent.`);
+  } else if (calc.marge > 0) {
+    parts.push(`ALERTE ROUGE ! Votre marge de ${Math.round(calc.marge)}% est dangereusement basse. A ce niveau, vous ne gagnez presque rien et le moindre probleme vous coute de l'argent. Revoyez votre prix de vente ou negociez vos couts.`);
   } else {
-    parts.push(`Attention : votre marge de ${Math.round(calc.marge)}% à ${fmt(Math.round(calc.ps), devise)} est insuffisante pour absorber les imprévus.`);
+    parts.push(`STOP - VOUS PERDEZ DE L'ARGENT ! A ${fmt(Math.round(calc.ps), devise)}, chaque vente vous coute ${fmt(Math.abs(Math.round(calc.benefice)), devise)}. C'est mathematiquement impossible de faire du profit ainsi. Augmentez votre prix ou reduisez vos couts immediatement.`);
   }
+
   if (calc.pc > 0) {
     const diff = ((calc.ps - calc.pc) / calc.pc) * 100;
-    if (diff > 10) {
-      parts.push(`Votre prix est ${Math.round(diff)}% au-dessus des concurrents. Assurez-vous d'avoir un argument de valeur fort (qualite, service, marque).`);
+    const diffAbs = Math.abs(diff);
+    if (diff > 20) {
+      parts.push(`\n\nCOMPARATIF CONCURRENCE : Votre prix est ${Math.round(diffAbs)}% plus cher que la concurrence (${fmt(Math.round(calc.pc), devise)}). A ce niveau d'ecart, vous devez imperativement justifier cette difference : qualite superieure, SAV exceptionnel, livraison plus rapide, packaging premium, ou marque reconnue. Sans argument fort, les clients iront voir ailleurs.`);
+    } else if (diff > 10) {
+      parts.push(`\n\nCOMPARATIF CONCURRENCE : Vous etes ${Math.round(diffAbs)}% au-dessus du marche (${fmt(Math.round(calc.pc), devise)}). C'est tenable si vous avez un avantage : meilleur service, garantie, ou valeur ajoutee percue. Sinon, ajustez pour rester competitif.`);
     } else if (diff > 0) {
-      parts.push(`Votre prix est légèrement au-dessus de la concurrence. Un bon argument de valeur suffit.`);
+      parts.push(`\n\nCOMPARATIF CONCURRENCE : Votre prix est legerement superieur (+${Math.round(diffAbs)}%) a la concurrence (${fmt(Math.round(calc.pc), devise)}). C'est acceptable, un bon argument commercial suffit.`);
+    } else if (diff > -10) {
+      parts.push(`\n\nCOMPARATIF CONCURRENCE : Bon positionnement ! Vous etes ${Math.round(diffAbs)}% moins cher que la concurrence (${fmt(Math.round(calc.pc), devise)}). Cet avantage prix peut favoriser le volume de ventes.`);
     } else {
-      parts.push(`Votre prix est compétitif par rapport à la concurrence, ce qui favorise le volume.`);
+      parts.push(`\n\nCOMPARATIF CONCURRENCE : Vous etes ${Math.round(diffAbs)}% moins cher que le marche (${fmt(Math.round(calc.pc), devise)}). Verifiez que vous ne bradez pas votre produit. Si votre marge reste correcte, c'est une strategie aggressive mais viable.`);
     }
   }
+
   if (calc.seuilRentab > 0) {
-    parts.push(`Comme votre volume est incertain, concentrez-vous sur le seuil de ${calc.seuilRentab} ventes/mois minimum. En-dessous, vous ne couvrez pas vos frais fixes.`);
+    parts.push(`\n\nOBJECTIF MINIMUM : Pour couvrir vos charges fixes et commencer a faire du profit, vous devez vendre au moins ${calc.seuilRentab} article${calc.seuilRentab > 1 ? 's' : ''} par mois. En dessous de ce seuil, vous perdez de l'argent meme si chaque vente semble rentable individuellement.`);
   }
-  return parts.join(" ");
+
+  const verdictPositif = calc.marge >= 25 && (calc.pc === 0 || calc.ps <= calc.pc * 1.15);
+  const verdictNegatif = calc.marge < 15 || (calc.pc > 0 && calc.ps > calc.pc * 1.25);
+  
+  if (verdictPositif) {
+    parts.push(`\n\nVERDICT VEKO : Ce prix est VIABLE. Vous pouvez lancer votre produit avec confiance.`);
+  } else if (verdictNegatif) {
+    parts.push(`\n\nVERDICT VEKO : Ce prix presente des RISQUES. Nous vous conseillons de revoir votre strategie avant de lancer.`);
+  } else {
+    parts.push(`\n\nVERDICT VEKO : Ce prix est ACCEPTABLE mais surveillez de pres vos marges et ajustez si necessaire.`);
+  }
+
+  return parts.join("");
 }
 
 function Report({ calc, nomProduit, onBack, devise, budgetPubJour, devisePub, joursEpuisement, tauxConversion, hasPub }: { 
@@ -312,40 +347,59 @@ function Report({ calc, nomProduit, onBack, devise, budgetPubJour, devisePub, jo
               <span style={{ fontSize: "14px", fontWeight: 800, color: "var(--text-primary)" }}>Projection Budget Publicitaire</span>
             </div>
             <div style={{ padding: "16px 20px" }}>
-              <div style={{ fontSize: "13px", color: "var(--text-muted)", marginBottom: "14px" }}>
-                Avec un budget de <strong style={{ color: "#ec4899" }}>{budgetPubJour.toLocaleString("fr-FR")} {devisePub || devise}/jour</strong> pour epuiser votre stock :
+              <div style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "14px", lineHeight: 1.6 }}>
+                Voici le budget total a prevoir selon la duree de votre campagne publicitaire, avec un budget quotidien de <strong style={{ color: "#ec4899" }}>{budgetPubJour.toLocaleString("fr-FR")} {devisePub || devise}/jour</strong>.
               </div>
-              {[
-                { label: "1 semaine", jours: 7 },
-                { label: "2 semaines", jours: 14 },
-                { label: "1 mois", jours: 30 },
-                ...(joursEpuisement && joursEpuisement !== 7 && joursEpuisement !== 14 && joursEpuisement !== 30 
-                  ? [{ label: `Periode choisie (${joursEpuisement}j)`, jours: joursEpuisement }] 
-                  : []),
-              ].map((period, i) => {
-                const totalDevise = budgetPubJour * period.jours;
-                const totalConverti = tauxConversion ? totalDevise * tauxConversion : totalDevise;
-                const showConversion = tauxConversion && tauxConversion !== 1 && devisePub !== devise;
-                return (
-                  <div key={period.label} style={{
-                    display: "flex", justifyContent: "space-between", alignItems: "center",
-                    padding: "12px 0",
-                    borderBottom: i < 3 ? "1px solid var(--diamond-border)" : "none",
-                  }}>
-                    <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>{period.label}</span>
-                    <div style={{ textAlign: "right" }}>
-                      <span style={{ fontSize: "14px", fontWeight: 700, color: "#ec4899" }}>
-                        {totalDevise.toLocaleString("fr-FR")} {devisePub || devise}
-                      </span>
-                      {showConversion && (
-                        <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "2px" }}>
-                          = {Math.round(totalConverti).toLocaleString("fr-FR")} {devise}
+              {(() => {
+                const periodes = [
+                  { label: "1 semaine (7 jours)", jours: 7, isChosen: joursEpuisement === 7 },
+                  { label: "2 semaines (14 jours)", jours: 14, isChosen: joursEpuisement === 14 },
+                  { label: "1 mois (30 jours)", jours: 30, isChosen: joursEpuisement === 30 },
+                ];
+                if (joursEpuisement && joursEpuisement !== 7 && joursEpuisement !== 14 && joursEpuisement !== 30) {
+                  periodes.unshift({ label: `Votre periode (${joursEpuisement} jours)`, jours: joursEpuisement, isChosen: true });
+                }
+                const sortedPeriodes = periodes.sort((a, b) => (b.isChosen ? 1 : 0) - (a.isChosen ? 1 : 0));
+                return sortedPeriodes.map((period, i) => {
+                  const totalDevise = budgetPubJour * period.jours;
+                  const totalConverti = tauxConversion ? totalDevise * tauxConversion : totalDevise;
+                  const showConversion = tauxConversion && tauxConversion !== 1 && devisePub !== devise;
+                  const roundedTotal = Math.round(totalDevise);
+                  const roundedConverti = Math.round(totalConverti);
+                  return (
+                    <div key={period.label} style={{
+                      display: "flex", justifyContent: "space-between", alignItems: "flex-start",
+                      padding: "14px 16px",
+                      marginBottom: i < sortedPeriodes.length - 1 ? "8px" : "0",
+                      background: period.isChosen ? "rgba(236,72,153,0.1)" : "var(--dark-card)",
+                      border: period.isChosen ? "2px solid #ec4899" : "1px solid var(--diamond-border)",
+                      borderRadius: "12px",
+                    }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: "13px", fontWeight: period.isChosen ? 800 : 600, color: period.isChosen ? "#ec4899" : "var(--text-secondary)", marginBottom: "4px" }}>
+                          {period.isChosen && <i className="fas fa-check-circle" style={{ marginRight: "6px" }}></i>}
+                          {period.label}
                         </div>
-                      )}
+                        <div style={{ fontSize: "12px", color: "var(--text-muted)", lineHeight: 1.5 }}>
+                          Si vous faites tourner votre pub pendant {period.jours} jours, prevoyez :
+                        </div>
+                      </div>
+                      <div style={{ textAlign: "right", marginLeft: "12px" }}>
+                        <div style={{ fontSize: "16px", fontWeight: 800, color: period.isChosen ? "#ec4899" : "var(--text-primary)" }}>
+                          {roundedTotal.toLocaleString("fr-FR")} {devisePub || devise}
+                          {roundedTotal !== totalDevise && <span style={{ fontSize: "11px", color: "var(--text-muted)" }}> ({totalDevise.toLocaleString("fr-FR")})</span>}
+                        </div>
+                        {showConversion && (
+                          <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px" }}>
+                            = {roundedConverti.toLocaleString("fr-FR")} {devise}
+                            {roundedConverti !== totalConverti && <span> ({totalConverti.toLocaleString("fr-FR", { maximumFractionDigits: 0 })})</span>}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                });
+              })()}
             </div>
           </div>
         )}
@@ -356,56 +410,86 @@ function Report({ calc, nomProduit, onBack, devise, budgetPubJour, devisePub, jo
             <i className="fas fa-tags" style={{ color: "#8b5cf6", fontSize: "16px" }}></i>
             <span style={{ fontSize: "14px", fontWeight: 800, color: "var(--text-primary)" }}>Grille Tarifaire</span>
           </div>
+          <div style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "14px", lineHeight: 1.5 }}>
+            Voici les differents niveaux de prix possibles selon la marge que vous souhaitez atteindre :
+          </div>
           {[
-            { label: "Minimale (Break-even)", sub: "Prix coutant exact - 0% marge", price: calc.breakEven, color: "#ef4444" },
-            { label: "Prix Sécurité", sub: "Marge ~15% - couvre tout", price: calc.securite, color: "#f59e0b" },
-            { label: "Prix Conseillé", sub: "Marge 30-40% - le juste milieu", price: calc.conseille, color: "#10b981" },
-            { label: "Prix Croissance (Premium)", sub: "Marge 60%+ - gros profit", price: calc.premium, color: "#8b5cf6" },
-          ].map((tier) => (
-            <div key={tier.label} style={{
-              background: "var(--dark-elevated)",
-              borderLeft: `4px solid ${tier.color}`,
-              borderRadius: "0 12px 12px 0",
-              padding: "16px 20px",
-              marginBottom: "8px",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}>
-              <div>
-                <div style={{ fontSize: "13px", fontWeight: 800, color: tier.color, marginBottom: "3px" }}>{tier.label}</div>
-                <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>{tier.sub}</div>
+            { label: "Minimale (Seuil)", sub: "Prix = Cout de revient. Aucun benefice, juste pour ne pas perdre.", price: calc.breakEven, color: "#ef4444", marge: 0 },
+            { label: "Prix Securite", sub: "Marge ~15%. Couvre les imprevus mineurs (quelques retours, petites remises).", price: calc.securite, color: "#f59e0b", marge: 15 },
+            { label: "Prix Conseille", sub: "Marge ~35%. Equilibre ideal entre competitivite et rentabilite.", price: calc.conseille, color: "#10b981", marge: 35 },
+            { label: "Prix Premium", sub: "Marge ~60%. Pour produits haut de gamme ou marques etablies.", price: calc.premium, color: "#8b5cf6", marge: 60 },
+          ].map((tier) => {
+            const rounded = Math.round(tier.price);
+            const exact = Math.round(tier.price * 100) / 100;
+            const showExact = rounded !== exact && tier.price > 0;
+            return (
+              <div key={tier.label} style={{
+                background: "var(--dark-elevated)",
+                borderLeft: `4px solid ${tier.color}`,
+                borderRadius: "0 12px 12px 0",
+                padding: "16px 20px",
+                marginBottom: "8px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: "13px", fontWeight: 800, color: tier.color, marginBottom: "3px" }}>{tier.label}</div>
+                  <div style={{ fontSize: "11px", color: "var(--text-muted)", lineHeight: 1.4 }}>{tier.sub}</div>
+                </div>
+                <div style={{ textAlign: "right", marginLeft: "16px" }}>
+                  <div style={{ fontSize: "20px", fontWeight: 900, color: tier.color, whiteSpace: "nowrap" }}>
+                    {rounded.toLocaleString("fr-FR")} {devise}
+                  </div>
+                  {showExact && (
+                    <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                      ({exact.toLocaleString("fr-FR")})
+                    </div>
+                  )}
+                </div>
               </div>
-              <div style={{ fontSize: "20px", fontWeight: 900, color: tier.color, whiteSpace: "nowrap", marginLeft: "16px" }}>
-                {fmt(Math.round(tier.price), devise)}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* ── POINT MORT ── */}
         {calc.seuilRentab > 0 && (
           <div style={{
             background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.2)",
-            borderRadius: "16px", padding: "16px 20px", marginBottom: "16px",
+            borderRadius: "16px", padding: "18px 20px", marginBottom: "16px",
           }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
               <i className="fas fa-crosshairs" style={{ color: "#3b82f6", fontSize: "15px" }}></i>
-              <span style={{ fontSize: "13px", fontWeight: 800, color: "#3b82f6" }}>Point Mort (Seuil de Rentabilité)</span>
+              <span style={{ fontSize: "14px", fontWeight: 800, color: "#3b82f6" }}>Point Mort (Seuil de Rentabilite)</span>
             </div>
-            <div style={{ fontSize: "13px", color: "var(--text-secondary)", lineHeight: 1.7 }}>
-              Au prix de{" "}
-              <strong style={{ color: "var(--text-primary)" }}>{fmt(Math.round(calc.ps), devise)}</strong>
-              , vous devez vendre{" "}
-              <strong style={{ fontSize: "18px", color: "#3b82f6" }}>{calc.seuilRentab} articles</strong>
-              {" "}par mois pour couvrir vos charges fixes{calc.chargesFixes > 0 ? ` (${fmt(Math.round(calc.chargesFixes), devise)})` : ""} et commencer a faire du benefice.
+            
+            <div style={{ background: "rgba(59,130,246,0.1)", borderRadius: "12px", padding: "14px", marginBottom: "14px", textAlign: "center" }}>
+              <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "1px" }}>Objectif minimum mensuel</div>
+              <div style={{ fontSize: "32px", fontWeight: 900, color: "#3b82f6" }}>{calc.seuilRentab}</div>
+              <div style={{ fontSize: "13px", color: "var(--text-secondary)", fontWeight: 600 }}>article{calc.seuilRentab > 1 ? "s" : ""} a vendre</div>
             </div>
-            {calc.chargesFixes > 0 && (
-              <div style={{ marginTop: "10px", fontSize: "11px", color: "#f59e0b", display: "flex", alignItems: "flex-start", gap: "6px" }}>
-                <i className="fas fa-exclamation-circle" style={{ marginTop: "1px", flexShrink: 0 }}></i>
-                <span>Volume inconnu : les calculs utilisent votre estimation comme base. Votre objectif reel est de {calc.seuilRentab} ventes minimum.</span>
+
+            <div style={{ fontSize: "13px", color: "var(--text-secondary)", lineHeight: 1.7, marginBottom: "12px" }}>
+              <strong style={{ color: "#3b82f6" }}>Qu&apos;est-ce que ca veut dire ?</strong><br />
+              Vous avez des charges fixes mensuelles de <strong style={{ color: "var(--text-primary)" }}>{fmt(Math.round(calc.chargesFixes), devise)}</strong> (loyer, pub, etc.).
+              Pour les couvrir avec un prix de vente de <strong style={{ color: "var(--text-primary)" }}>{fmt(Math.round(calc.ps), devise)}</strong>, 
+              vous devez realiser <strong style={{ color: "#3b82f6" }}>{calc.seuilRentab} vente{calc.seuilRentab > 1 ? "s" : ""}</strong> par mois.
+            </div>
+
+            <div style={{ background: "var(--dark-elevated)", borderRadius: "10px", padding: "12px 14px", fontSize: "12px", lineHeight: 1.6 }}>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: "8px", marginBottom: "8px" }}>
+                <i className="fas fa-arrow-down" style={{ color: "#ef4444", marginTop: "2px", flexShrink: 0 }}></i>
+                <span style={{ color: "var(--text-secondary)" }}>
+                  <strong style={{ color: "#ef4444" }}>En dessous de {calc.seuilRentab} ventes :</strong> Vous perdez de l&apos;argent car vos frais fixes ne sont pas couverts.
+                </span>
               </div>
-            )}
+              <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
+                <i className="fas fa-arrow-up" style={{ color: "#10b981", marginTop: "2px", flexShrink: 0 }}></i>
+                <span style={{ color: "var(--text-secondary)" }}>
+                  <strong style={{ color: "#10b981" }}>Au-dela de {calc.seuilRentab} ventes :</strong> Chaque vente supplementaire genere un profit net de {fmt(Math.round(calc.benefice), devise)}.
+                </span>
+              </div>
+            </div>
           </div>
         )}
 
@@ -871,19 +955,71 @@ export default function LaboClient() {
           </div>
         </div>
 
-        {/* ── RAPPORT DEPUIS HISTORIQUE ── */}
+        {/* ── RAPPORT DEPUIS HISTORIQUE (PLEIN ECRAN) ── */}
         {selectedHistoryEntry && selectedHistoryEntry.calc && (
-          <Report
-            calc={selectedHistoryEntry.calc}
-            nomProduit={selectedHistoryEntry.nomProduit}
-            onBack={() => setSelectedHistoryEntry(null)}
-            devise={selectedHistoryEntry.deviseSysteme || deviseActuelle}
-            hasPub={selectedHistoryEntry.hasPub}
-            budgetPubJour={selectedHistoryEntry.budgetPubJour}
-            devisePub={selectedHistoryEntry.devisePub}
-            joursEpuisement={selectedHistoryEntry.joursEpuisement}
-            tauxConversion={selectedHistoryEntry.tauxConversion}
-          />
+          <div style={{ 
+            position: "fixed", 
+            inset: 0, 
+            zIndex: 10001, 
+            background: "var(--dark-bg, #0a0a0f)", 
+            overflowY: "auto",
+            display: "flex",
+            flexDirection: "column",
+          }}>
+            <div style={{ 
+              position: "sticky",
+              top: 0,
+              zIndex: 10,
+              background: "var(--dark-card)",
+              borderBottom: "1px solid var(--diamond-border)",
+              padding: "12px 20px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <i className="fas fa-clock-rotate-left" style={{ color: "#8b5cf6", fontSize: "16px" }}></i>
+                <span style={{ fontSize: "14px", fontWeight: 700, color: "var(--text-primary)" }}>
+                  {selectedHistoryEntry.nomProduit}
+                </span>
+                <span style={{ fontSize: "11px", color: "var(--text-muted)", background: "var(--dark-elevated)", padding: "4px 8px", borderRadius: "6px" }}>
+                  {new Date(selectedHistoryEntry.date).toLocaleDateString("fr-FR")}
+                </span>
+              </div>
+              <button 
+                onClick={() => setSelectedHistoryEntry(null)} 
+                style={{ 
+                  background: "var(--dark-elevated)", 
+                  border: "1px solid var(--diamond-border)", 
+                  borderRadius: "10px", 
+                  padding: "8px 14px", 
+                  cursor: "pointer", 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: "6px",
+                  color: "var(--text-secondary)",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                }}
+              >
+                <i className="fas fa-xmark"></i>
+                Fermer
+              </button>
+            </div>
+            <div style={{ flex: 1 }}>
+              <Report
+                calc={selectedHistoryEntry.calc}
+                nomProduit={selectedHistoryEntry.nomProduit}
+                onBack={() => setSelectedHistoryEntry(null)}
+                devise={selectedHistoryEntry.deviseSysteme || deviseActuelle}
+                hasPub={selectedHistoryEntry.hasPub}
+                budgetPubJour={selectedHistoryEntry.budgetPubJour}
+                devisePub={selectedHistoryEntry.devisePub}
+                joursEpuisement={selectedHistoryEntry.joursEpuisement}
+                tauxConversion={selectedHistoryEntry.tauxConversion}
+              />
+            </div>
+          </div>
         )}
 
         {/* ── MODAL HISTORIQUE ── */}

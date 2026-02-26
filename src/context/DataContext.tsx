@@ -62,8 +62,8 @@ type DataContextType = {
   deleteVente: (id: string) => Promise<void>;
   marquerRetournee: (id: string) => Promise<void>;
   repartirPubJour: (budgetTotal: number) => Promise<void>;
-  addProduit: (p: Omit<Produit, "id" | "created_at" | "user_id">) => Promise<void>;
-  updateProduit: (id: string, p: Partial<Omit<Produit, "id" | "user_id">>) => Promise<void>;
+  addProduit: (p: Omit<Produit, "id" | "created_at" | "user_id">) => Promise<boolean>;
+  updateProduit: (id: string, p: Partial<Omit<Produit, "id" | "user_id">>) => Promise<boolean>;
   deleteProduit: (id: string) => Promise<void>;
   activeGoal: Goal | null;
   goalStats: GoalStats | null;
@@ -294,11 +294,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }));
   }, [ventes]);
 
-  const addProduit = useCallback(async (p: Omit<Produit, "id" | "created_at" | "user_id">) => {
+  const addProduit = useCallback(async (p: Omit<Produit, "id" | "created_at" | "user_id">): Promise<boolean> => {
     try {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) return false;
       const insertData: Record<string, unknown> = {
         user_id: user.id, nom: p.nom, prix_revient: p.prix_revient,
         prix_vente: p.prix_vente, commission: p.commission,
@@ -308,24 +308,32 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const { data, error } = await supabase.from("produits").insert(insertData).select().single();
       if (error) {
         console.error("[DataContext] addProduit erreur Supabase:", error);
-        return;
+        return false;
       }
       if (data) {
         const np = mapProduit(data as Record<string, unknown>);
         setProduits(prev => [...prev, np].sort((a, b) => a.nom.localeCompare(b.nom)));
+        return true;
       }
+      return false;
     } catch (e) {
       console.error("[DataContext] addProduit erreur:", e);
+      return false;
     }
   }, []);
 
-  const updateProduit = useCallback(async (id: string, p: Partial<Omit<Produit, "id" | "user_id">>) => {
+  const updateProduit = useCallback(async (id: string, p: Partial<Omit<Produit, "id" | "user_id">>): Promise<boolean> => {
     try {
       const { error } = await createClient().from("produits").update(p).eq("id", id);
-      if (error) throw error;
+      if (error) {
+        console.error("[DataContext] updateProduit erreur:", error);
+        return false;
+      }
       setProduits(prev => prev.map(pr => pr.id === id ? { ...pr, ...p } : pr));
+      return true;
     } catch (e) {
       console.error("[DataContext] updateProduit erreur:", e);
+      return false;
     }
   }, []);
 
