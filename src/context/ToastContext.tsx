@@ -29,10 +29,10 @@ const COLORS: Record<ToastType, { bg: string; border: string; icon: string }> = 
 };
 
 const ICON_COLORS: Record<ToastType, string> = {
-  success: "#10b981",
-  error:   "#ef4444",
-  warning: "#f59e0b",
-  info:    "#3b82f6",
+  success: "var(--accent-green)",
+  error:   "var(--accent-red)",
+  warning: "var(--accent-orange)",
+  info:    "var(--accent-blue)",
 };
 
 let nextId = 1;

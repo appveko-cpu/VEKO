@@ -4,30 +4,41 @@
 
 :root {
     color-scheme: dark;
-    --ultra-dark: #0a0f1e;
-    --dark-surface: #0d1424;
-    --dark-card: #121a2e;
-    --dark-elevated: #1a2438;
-    --diamond-border: rgba(255, 255, 255, 0.10);
-    --diamond-border-hover: rgba(255, 255, 255, 0.18);
-    --text-primary: #ffffff;
-    --text-secondary: rgba(255, 255, 255, 0.7);
-    --text-muted: rgba(255, 255, 255, 0.5);
+    --ultra-dark: #0F172A;
+    --dark-surface: #0F172A;
+    --dark-card: #1E293B;
+    --dark-elevated: #334155;
+    --diamond-border: rgba(255, 255, 255, 0.12);
+    --diamond-border-hover: rgba(255, 255, 255, 0.24);
+    --text-primary: #F8FAFC;
+    --text-secondary: #CBD5E1;
+    --text-muted: #94A3B8;
     --accent-green: #10b981;
     --accent-blue: #3b82f6;
     --accent-purple: #8b5cf6;
     --accent-orange: #f59e0b;
     --accent-red: #ef4444;
     --accent-cyan: #06b6d4;
-    --gradient-primary: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+    --accent-info: #0ea5e9;
+    --accent-warning: #f97316;
+    --gradient-primary: linear-gradient(135deg, #10B981 0%, #059669 100%);
+    --gradient-secondary: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%);
+    --gradient-brand: linear-gradient(135deg, #10B981 0%, #059669 100%);
     --gradient-success: linear-gradient(135deg, #10b981 0%, #059669 100%);
     --gradient-warning: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-    --glass-bg: rgba(255, 255, 255, 0.08);
+    --success-bg: rgba(16, 185, 129, 0.12);
+    --error-bg: rgba(239, 68, 68, 0.12);
+    --warning-bg: rgba(245, 158, 11, 0.12);
+    --info-bg: rgba(59, 130, 246, 0.12);
+    --shadow-green: 0 8px 24px rgba(16, 185, 129, 0.25);
+    --shadow-blue: 0 8px 24px rgba(59, 130, 246, 0.25);
+    --shadow-purple: 0 8px 24px rgba(139, 92, 246, 0.25);
+    --glass-bg: rgba(255, 255, 255, 0.06);
     --glass-border: rgba(255, 255, 255, 0.14);
     --blur-amount: 18px;
     --card-radius: 24px;
     --font-inter: 'Inter', system-ui, sans-serif;
-    --input-bg: #0d1224;
+    --input-bg: #1E293B;
     --chart-axis-color: rgba(255,255,255,0.35);
     --chart-grid-color: rgba(255,255,255,0.07);
     --chart-grid-v-color: rgba(255,255,255,0.05);
@@ -37,18 +48,18 @@
 
 [data-theme="light"] {
     color-scheme: light;
-    --ultra-dark: #eef2f7;
-    --dark-surface: #ffffff;
-    --dark-card: #ffffff;
-    --dark-elevated: #f0f4f8;
+    --ultra-dark: #F8FAFC;
+    --dark-surface: #FFFFFF;
+    --dark-card: #FFFFFF;
+    --dark-elevated: #F1F5F9;
     --diamond-border: rgba(0, 0, 0, 0.14);
     --diamond-border-hover: rgba(0, 0, 0, 0.28);
-    --text-primary: #1a1a2e;
-    --text-secondary: rgba(26, 26, 46, 0.72);
-    --text-muted: rgba(26, 26, 46, 0.5);
+    --text-primary: #0F172A;
+    --text-secondary: #475569;
+    --text-muted: #94A3B8;
     --glass-bg: rgba(255, 255, 255, 0.92);
     --glass-border: rgba(0, 0, 0, 0.14);
-    --input-bg: #ffffff;
+    --input-bg: #FFFFFF;
     --chart-axis-color: rgba(26,26,46,0.55);
     --chart-grid-color: rgba(0,0,0,0.1);
     --chart-grid-v-color: rgba(0,0,0,0.05);
@@ -243,7 +254,7 @@ body {
     width: 60px; height: 60px; border-radius: 50%;
     background: var(--gradient-primary); border: none; color: white;
     font-size: 24px; cursor: pointer;
-    box-shadow: 0 8px 30px rgba(59, 130, 246, 0.5);
+    box-shadow: 0 8px 30px rgba(16, 185, 129, 0.5);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex; align-items: center; justify-content: center;
 }
@@ -450,8 +461,8 @@ body {
     font-family: var(--font-inter), system-ui, sans-serif;
 }
 
-.btn-primary { background: var(--gradient-primary); color: white; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3); }
-.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4); }
+.btn-primary { background: var(--gradient-primary); color: white; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4); }
 
 .btn-success { background: var(--gradient-success); color: white; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); }
 .btn-success:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4); }

@@ -210,9 +210,9 @@ export default function Navigation() {
           onClick={() => setFabOpen((v) => !v)}
           style={{
             width: "52px", height: "52px", borderRadius: "50%",
-            background: "linear-gradient(135deg, #4f46e5, #8b5cf6)",
+            background: "var(--gradient-primary)",
             border: "none", color: "white", fontSize: "22px", cursor: "pointer",
-            boxShadow: "0 8px 24px rgba(99,102,241,0.5)",
+            boxShadow: "0 8px 24px rgba(16,185,129,0.5)",
             display: "flex", alignItems: "center", justifyContent: "center",
             position: "relative", zIndex: 9999,
             transition: "transform 0.2s ease",

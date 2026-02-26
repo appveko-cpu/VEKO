@@ -15,11 +15,11 @@ export default function Home() {
         {/* Icon */}
         <div style={{
           width: "90px", height: "90px", borderRadius: "24px",
-          background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
+          background: "var(--gradient-primary)",
           margin: "0 auto 24px",
           display: "flex", alignItems: "center", justifyContent: "center",
           fontSize: "42px", color: "white",
-          boxShadow: "0 12px 40px rgba(59,130,246,0.4)",
+          boxShadow: "var(--shadow-green)",
         }}>
           <i className="fas fa-chart-line"></i>
         </div>
@@ -34,9 +34,9 @@ export default function Home() {
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           <Link href="/login" style={{
             display: "block", padding: "16px 24px",
-            background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
+            background: "var(--gradient-primary)",
             color: "white", borderRadius: "14px", fontWeight: 700, fontSize: "15px",
-            textDecoration: "none", boxShadow: "0 4px 15px rgba(59,130,246,0.35)",
+            textDecoration: "none", boxShadow: "var(--shadow-green)",
           }}>
             <i className="fas fa-sign-in-alt" style={{ marginRight: "10px" }}></i>
             Se connecter

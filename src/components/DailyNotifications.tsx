@@ -321,7 +321,7 @@ export function SundayStrategy() {
 
         <button onClick={() => setVisible(false)} style={{
           width: "100%", padding: "16px", borderRadius: "14px",
-          background: "linear-gradient(135deg, #4f46e5, #8b5cf6)",
+          background: "var(--gradient-secondary)",
           border: "none", color: "white", fontSize: "15px", fontWeight: 800,
           cursor: "pointer", fontFamily: "var(--font-inter), sans-serif",
         }}>
