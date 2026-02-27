@@ -1,6 +1,7 @@
 "use client";
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
+import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 
 export type Vente = {
   id: string;
@@ -163,7 +164,22 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setLoading(false);
   }, []);
 
-  useEffect(() => { loadAll(); }, [loadAll]);
+  useEffect(() => {
+    const supabase = createClient();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
+      if (session && (event === "INITIAL_SESSION" || event === "SIGNED_IN" || event === "TOKEN_REFRESHED")) {
+        loadAll();
+      } else if (!session && event === "INITIAL_SESSION") {
+        setLoading(false);
+      } else if (event === "SIGNED_OUT") {
+        setVentes([]);
+        setProduits([]);
+        setActiveGoal(null);
+        setLoading(false);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [loadAll]);
 
   useEffect(() => {
     const supabase = createClient();

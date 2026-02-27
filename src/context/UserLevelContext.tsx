@@ -1,6 +1,7 @@
 "use client";
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
+import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 
 export type UserLevel = "starter" | "actif" | "pro" | "expert" | "legend";
 
@@ -73,7 +74,15 @@ export function UserLevelProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadUserLevel();
+    const supabase = createClient();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
+      if (session && (event === "INITIAL_SESSION" || event === "SIGNED_IN")) {
+        loadUserLevel();
+      } else if (!session && event === "INITIAL_SESSION") {
+        setLoading(false);
+      }
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
   const loadUserLevel = async () => {

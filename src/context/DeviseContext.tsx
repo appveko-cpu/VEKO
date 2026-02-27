@@ -1,6 +1,7 @@
 "use client";
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
+import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 
 const TAUX_VERS_EUR: Record<string, number> = {
   "EUR": 1,
@@ -101,7 +102,14 @@ export function DeviseProvider({ children }: { children: ReactNode }) {
         }
       } catch { }
     }
-    syncDevise();
+
+    const supabase = createClient();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
+      if (session && (event === "INITIAL_SESSION" || event === "SIGNED_IN")) {
+        syncDevise();
+      }
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
   const setDevise = useCallback((d: string) => {
