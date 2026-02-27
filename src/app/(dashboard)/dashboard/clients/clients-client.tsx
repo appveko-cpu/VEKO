@@ -1,7 +1,8 @@
 "use client";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useDevise } from "@/context/DeviseContext";
 import { createClient } from "@/lib/supabase/client";
+import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import TooltipGuide from "@/components/onboarding/TooltipGuide";
 
 type Client = {
@@ -23,40 +24,46 @@ export default function ClientsClient() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const { data } = await createClient()
-          .from("ventes")
-          .select("nom_client, tel, ca, benefice")
-          .eq("retournee", false);
-        if (data) {
-          const map = new Map<string, Client>();
-          data.forEach((v: Record<string, unknown>) => {
-            const key = `${(v.nom_client as string) ?? ""}|${(v.tel as string) ?? ""}`;
-            const existing = map.get(key);
-            if (existing) {
-              existing.nbCommandes += 1;
-              existing.totalCA += (v.ca as number) ?? 0;
-              existing.totalBenefice += (v.benefice as number) ?? 0;
-            } else {
-              map.set(key, {
-                id: key,
-                nom: (v.nom_client as string) || "Anonyme",
-                tel: (v.tel as string) || "",
-                nbCommandes: 1,
-                totalCA: (v.ca as number) ?? 0,
-                totalBenefice: (v.benefice as number) ?? 0,
-              });
-            }
-          });
-          setClients(Array.from(map.values()).sort((a, b) => b.totalCA - a.totalCA));
-        }
-      } catch { }
-      setLoading(false);
-    }
-    load();
+  const load = useCallback(async () => {
+    try {
+      const { data } = await createClient()
+        .from("ventes")
+        .select("nom_client, tel, ca, benefice")
+        .eq("retournee", false);
+      if (data) {
+        const map = new Map<string, Client>();
+        data.forEach((v: Record<string, unknown>) => {
+          const key = `${(v.nom_client as string) ?? ""}|${(v.tel as string) ?? ""}`;
+          const existing = map.get(key);
+          if (existing) {
+            existing.nbCommandes += 1;
+            existing.totalCA += (v.ca as number) ?? 0;
+            existing.totalBenefice += (v.benefice as number) ?? 0;
+          } else {
+            map.set(key, {
+              id: key,
+              nom: (v.nom_client as string) || "Anonyme",
+              tel: (v.tel as string) || "",
+              nbCommandes: 1,
+              totalCA: (v.ca as number) ?? 0,
+              totalBenefice: (v.benefice as number) ?? 0,
+            });
+          }
+        });
+        setClients(Array.from(map.values()).sort((a, b) => b.totalCA - a.totalCA));
+      }
+    } catch { }
+    setLoading(false);
   }, []);
+
+  useEffect(() => {
+    const supabase = createClient();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
+      if (session && (event === "INITIAL_SESSION" || event === "SIGNED_IN")) load();
+      else if (!session && event === "INITIAL_SESSION") setLoading(false);
+    });
+    return () => subscription.unsubscribe();
+  }, [load]);
 
   const clientsFiltres = useMemo(() => clients.filter((c) => {
     if (!search) return true;

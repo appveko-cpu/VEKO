@@ -192,6 +192,19 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     return () => { supabase.removeChannel(ch); };
   }, [loadAll]);
 
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") loadAll();
+    };
+    const onFocus = () => loadAll();
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onFocus);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [loadAll]);
+
   const goalStats = useMemo((): GoalStats | null => {
     if (!activeGoal) return null;
 

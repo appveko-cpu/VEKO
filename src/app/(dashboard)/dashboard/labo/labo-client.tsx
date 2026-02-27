@@ -1,6 +1,8 @@
 "use client";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useDevise } from "@/context/DeviseContext";
+import { createClient } from "@/lib/supabase/client";
+import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import TooltipGuide from "@/components/onboarding/TooltipGuide";
 
 type SourceType = "local" | "import" | "production";
@@ -731,10 +733,35 @@ export default function LaboClient() {
   const [commission, setCommission] = useState("");
   const [autresFrais, setAutresFrais] = useState("");
 
-  useEffect(() => {
-    const saved = localStorage.getItem("veko_labo_history");
-    if (saved) setHistory(JSON.parse(saved));
+  const loadHistory = useCallback(async () => {
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("labo_history")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (data) {
+        setHistory(data.map((row: Record<string, unknown>) => ({
+          ...(row.data as Record<string, unknown>),
+          id: row.id as string,
+          date: row.created_at as string,
+          nomProduit: row.nom_produit as string,
+        })));
+      }
+    } catch { }
   }, []);
+
+  useEffect(() => {
+    const supabase = createClient();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
+      if (session && (event === "INITIAL_SESSION" || event === "SIGNED_IN")) loadHistory();
+    });
+    return () => subscription.unsubscribe();
+  }, [loadHistory]);
 
   function resetAllFields() {
     setNomProduit(""); setPrixSouhaite(""); setObjectifBenefice(""); setPrixConcurrent(""); setNeSaitPas(false);
@@ -785,7 +812,27 @@ export default function LaboClient() {
     };
     const updated = [entry, ...history].slice(0, 20);
     setHistory(updated);
-    localStorage.setItem("veko_labo_history", JSON.stringify(updated));
+    (async () => {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        await supabase.from("labo_history").insert({
+          user_id: user.id,
+          nom_produit: nomProduit || "Produit sans nom",
+          data: entry,
+        });
+        const { data: allRows } = await supabase
+          .from("labo_history")
+          .select("id")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: true });
+        if (allRows && allRows.length > 20) {
+          const toDelete = allRows.slice(0, allRows.length - 20);
+          await supabase.from("labo_history").delete().in("id", toDelete.map((r: { id: string }) => r.id));
+        }
+      } catch { }
+    })();
   }
 
 

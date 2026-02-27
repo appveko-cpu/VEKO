@@ -109,3 +109,18 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS checklist_hidden boolean DEFAULT f
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS first_sale_done boolean DEFAULT false;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS first_product_done boolean DEFAULT false;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS objective_set boolean DEFAULT false;
+
+-- ── TABLE LABO_HISTORY ──────────────────────────────
+CREATE TABLE IF NOT EXISTS public.labo_history (
+  id          uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id     uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  nom_produit text NOT NULL DEFAULT '',
+  data        jsonb NOT NULL DEFAULT '{}',
+  created_at  timestamptz DEFAULT now()
+);
+
+ALTER TABLE public.labo_history ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "labo_history_own" ON public.labo_history FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
