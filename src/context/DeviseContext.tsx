@@ -77,11 +77,6 @@ export function DeviseProvider({ children }: { children: ReactNode }) {
   const [deviseBase, setDeviseBaseState] = useState("FCFA");
 
   useEffect(() => {
-    const localActuelle = localStorage.getItem("veko_devise");
-    const localBase = localStorage.getItem("veko_devise_base");
-    if (localActuelle) setDeviseActuelle(localActuelle);
-    if (localBase) setDeviseBaseState(localBase);
-
     async function syncDevise() {
       try {
         const supabase = createClient();
@@ -92,14 +87,8 @@ export function DeviseProvider({ children }: { children: ReactNode }) {
           .select("devise, devise_base")
           .eq("id", user.id)
           .single();
-        if (data?.devise) {
-          setDeviseActuelle(data.devise);
-          localStorage.setItem("veko_devise", data.devise);
-        }
-        if (data?.devise_base) {
-          setDeviseBaseState(data.devise_base);
-          localStorage.setItem("veko_devise_base", data.devise_base);
-        }
+        if (data?.devise) setDeviseActuelle(data.devise);
+        if (data?.devise_base) setDeviseBaseState(data.devise_base);
       } catch { }
     }
 
@@ -114,7 +103,6 @@ export function DeviseProvider({ children }: { children: ReactNode }) {
 
   const setDevise = useCallback((d: string) => {
     setDeviseActuelle(d);
-    localStorage.setItem("veko_devise", d);
     async function save() {
       try {
         const supabase = createClient();
@@ -131,7 +119,6 @@ export function DeviseProvider({ children }: { children: ReactNode }) {
 
   const setDeviseBase = useCallback((d: string) => {
     setDeviseBaseState(d);
-    localStorage.setItem("veko_devise_base", d);
     async function save() {
       try {
         const supabase = createClient();

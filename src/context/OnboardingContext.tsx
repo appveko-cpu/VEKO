@@ -69,9 +69,6 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const done = localStorage.getItem("veko_onboarding_done");
-    if (done !== null) setIsOnboardingDone(true);
-
     const supabase = createClient();
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
       if (session && (event === "INITIAL_SESSION" || event === "SIGNED_IN")) {
@@ -120,7 +117,6 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
 
         if (data.onboarding_completed_at) {
           setIsOnboardingDone(true);
-          localStorage.setItem("veko_onboarding_done", "completed");
         }
       }
     } catch (e) {
@@ -159,13 +155,11 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const skipOnboarding = useCallback(async () => {
-    localStorage.setItem("veko_onboarding_done", "skip");
     setIsOnboardingDone(true);
     await updateProfile({ onboardingCompletedAt: new Date().toISOString() });
   }, [updateProfile]);
 
   const completeOnboarding = useCallback(async () => {
-    localStorage.setItem("veko_onboarding_done", "completed");
     setIsOnboardingDone(true);
     await updateProfile({ onboardingCompletedAt: new Date().toISOString() });
   }, [updateProfile]);
