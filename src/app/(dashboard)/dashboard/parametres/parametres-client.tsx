@@ -160,7 +160,14 @@ export default function ParametresClient() {
   const [showAncien, setShowAncien] = useState(false);
   const [showNouveau, setShowNouveau] = useState(false);
 
-  const [shopifyConnected] = useState(false);
+  const [shopifyConnected, setShopifyConnected] = useState(false);
+  const [shopifyStoreUrl, setShopifyStoreUrl] = useState<string | null>(null);
+  const [shopifyOrdersCount, setShopifyOrdersCount] = useState(0);
+  const [shopifyRevenue, setShopifyRevenue] = useState(0);
+  const [shopifyLastSync, setShopifyLastSync] = useState<string | null>(null);
+  const [showShopifyInput, setShowShopifyInput] = useState(false);
+  const [shopifyStoreName, setShopifyStoreName] = useState("");
+  const [shopifyMsg, setShopifyMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [saveMsg, setSaveMsg] = useState("");
   const [mdpMsg, setMdpMsg] = useState("");
@@ -199,6 +206,11 @@ export default function ParametresClient() {
           setNom(profile.nom ?? "");
           setTelephone(profile.telephone ?? "");
           setIndicatif(profile.indicatif ?? "+237");
+          setShopifyConnected(profile.shopify_connected ?? false);
+          setShopifyStoreUrl(profile.shopify_store_url ?? null);
+          setShopifyOrdersCount(profile.shopify_orders_count ?? 0);
+          setShopifyRevenue(profile.shopify_revenue ?? 0);
+          setShopifyLastSync(profile.shopify_last_sync ?? null);
         } else {
           setUsername(user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "");
         }
@@ -209,6 +221,50 @@ export default function ParametresClient() {
     }
     loadUser();
   }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const shopifyStatus = params.get("shopify");
+    if (shopifyStatus === "success") {
+      setShopifyMsg({ type: "success", text: "Boutique Shopify connectée avec succès !" });
+      window.history.replaceState({}, "", window.location.pathname);
+    } else if (shopifyStatus === "error") {
+      const reason = params.get("reason") ?? "unknown";
+      const messages: Record<string, string> = {
+        invalid_hmac: "Signature Shopify invalide.",
+        state_mismatch: "Session expirée, réessayez.",
+        token_exchange_failed: "Échange de token échoué.",
+        no_access_token: "Shopify n'a pas renvoyé de token.",
+        db_update_failed: "Erreur de sauvegarde en base.",
+        server_config: "Configuration serveur manquante.",
+      };
+      setShopifyMsg({ type: "error", text: messages[reason] ?? `Erreur de connexion Shopify (${reason})` });
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
+
+  async function handleShopifyDisconnect() {
+    try {
+      const res = await fetch("/api/shopify/disconnect", { method: "POST" });
+      if (res.ok) {
+        setShopifyConnected(false);
+        setShopifyStoreUrl(null);
+        setShopifyOrdersCount(0);
+        setShopifyRevenue(0);
+        setShopifyLastSync(null);
+        setShopifyMsg({ type: "success", text: "Boutique Shopify déconnectée." });
+        setTimeout(() => setShopifyMsg(null), 4000);
+      }
+    } catch {
+      setShopifyMsg({ type: "error", text: "Erreur lors de la déconnexion." });
+    }
+  }
+
+  function handleShopifyConnect() {
+    const name = shopifyStoreName.trim();
+    if (!name) return;
+    window.location.href = `/api/auth/shopify/install?shop=${encodeURIComponent(name)}`;
+  }
 
   async function handleSaveProfil(e: React.FormEvent) {
     e.preventDefault();
@@ -494,20 +550,58 @@ export default function ParametresClient() {
               Intégration Shopify
             </span>
           </div>
+
+          {shopifyMsg && (
+            <div style={{
+              background: shopifyMsg.type === "success" ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)",
+              border: `1px solid ${shopifyMsg.type === "success" ? "rgba(16,185,129,0.35)" : "rgba(239,68,68,0.35)"}`,
+              borderRadius: "10px", padding: "10px 16px", marginBottom: "14px",
+              fontSize: "13px", fontWeight: 700,
+              color: shopifyMsg.type === "success" ? "var(--accent-green)" : "var(--accent-red)",
+              display: "flex", alignItems: "center", gap: "8px",
+            }}>
+              <i className={shopifyMsg.type === "success" ? "fas fa-check-circle" : "fas fa-exclamation-circle"}></i>
+              {shopifyMsg.text}
+            </div>
+          )}
+
           {shopifyConnected ? (
-            <div style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.3)", borderRadius: "12px", padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <div style={{ width: "36px", height: "36px", borderRadius: "8px", background: "#96bf48", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <i className="fas fa-check" style={{ color: "#fff", fontSize: "16px" }}></i>
-                </div>
-                <div>
-                  <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--accent-green)" }}>Boutique connectée</div>
-                  <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>ma-boutique.myshopify.com</div>
+            <div>
+              <div style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.3)", borderRadius: "12px", padding: "16px 20px", marginBottom: "14px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <div style={{ width: "36px", height: "36px", borderRadius: "8px", background: "#96bf48", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <i className="fas fa-check" style={{ color: "#fff", fontSize: "16px" }}></i>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--accent-green)" }}>Boutique connectée</div>
+                      <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px" }}>{shopifyStoreUrl}</div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleShopifyDisconnect}
+                    className="btn"
+                    style={{ background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.3)", color: "var(--accent-red)", borderRadius: "8px", padding: "8px 14px", fontSize: "12px", fontWeight: 700, cursor: "pointer" }}
+                  >
+                    Déconnecter
+                  </button>
                 </div>
               </div>
-              <button className="btn" style={{ background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.3)", color: "var(--accent-red)", borderRadius: "8px", padding: "8px 14px", fontSize: "12px", fontWeight: 700, cursor: "pointer" }}>
-                Déconnecter
-              </button>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <div style={{ background: "var(--dark-elevated)", borderRadius: "12px", padding: "14px" }}>
+                  <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "6px" }}>Commandes</div>
+                  <div style={{ fontSize: "24px", fontWeight: 800, color: "#10b981" }}>{shopifyOrdersCount}</div>
+                </div>
+                <div style={{ background: "var(--dark-elevated)", borderRadius: "12px", padding: "14px" }}>
+                  <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "6px" }}>CA Total</div>
+                  <div style={{ fontSize: "24px", fontWeight: 800, color: "#3b82f6" }}>{shopifyRevenue.toLocaleString("fr-FR", { maximumFractionDigits: 0 })}</div>
+                </div>
+              </div>
+              {shopifyLastSync && (
+                <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "10px", textAlign: "right" }}>
+                  Dernière sync : {new Date(shopifyLastSync).toLocaleString("fr-FR")}
+                </div>
+              )}
             </div>
           ) : (
             <>
@@ -518,14 +612,52 @@ export default function ParametresClient() {
                 <div>
                   <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--text-primary)" }}>Non connecté</div>
                   <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px", lineHeight: 1.5 }}>
-                    Connectez votre boutique Shopify pour synchroniser vos commandes et produits automatiquement.
+                    Connectez votre boutique Shopify pour synchroniser vos commandes automatiquement.
                   </div>
                 </div>
               </div>
-              <button className="btn btn-success" style={{ width: "100%" }}>
-                <i className="fas fa-plug"></i>
-                Connecter ma boutique Shopify
-              </button>
+              {!showShopifyInput ? (
+                <button onClick={() => setShowShopifyInput(true)} className="btn btn-success" style={{ width: "100%" }}>
+                  <i className="fas fa-plug"></i>
+                  Connecter ma boutique Shopify
+                </button>
+              ) : (
+                <div>
+                  <div className="calc-field" style={{ marginBottom: "12px" }}>
+                    <label className="calc-label">NOM DE LA BOUTIQUE</label>
+                    <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                      <input
+                        className="form-input"
+                        type="text"
+                        value={shopifyStoreName}
+                        onChange={(e) => setShopifyStoreName(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleShopifyConnect()}
+                        placeholder="ma-boutique"
+                        autoFocus
+                      />
+                      <span style={{ fontSize: "13px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>.myshopify.com</span>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: "10px" }}>
+                    <button
+                      onClick={() => { setShowShopifyInput(false); setShopifyStoreName(""); }}
+                      className="btn"
+                      style={{ flex: 1, background: "transparent", border: "1px solid var(--diamond-border)", color: "var(--text-muted)" }}
+                    >
+                      Annuler
+                    </button>
+                    <button
+                      onClick={handleShopifyConnect}
+                      disabled={!shopifyStoreName.trim()}
+                      className="btn btn-success"
+                      style={{ flex: 2, opacity: shopifyStoreName.trim() ? 1 : 0.5, cursor: shopifyStoreName.trim() ? "pointer" : "not-allowed" }}
+                    >
+                      <i className="fas fa-arrow-right"></i>
+                      Connecter
+                    </button>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>

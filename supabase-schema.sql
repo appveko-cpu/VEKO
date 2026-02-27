@@ -124,3 +124,8 @@ ALTER TABLE public.labo_history ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "labo_history_own" ON public.labo_history FOR ALL
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
+
+-- ── COLONNES SHOPIFY STATS ────────────────────────────
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS shopify_orders_count integer DEFAULT 0;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS shopify_revenue numeric DEFAULT 0;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS shopify_last_sync timestamptz;
