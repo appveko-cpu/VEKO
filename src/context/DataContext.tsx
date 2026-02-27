@@ -1,5 +1,5 @@
 "use client";
-import { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 
@@ -135,8 +135,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [activeGoal, setActiveGoal] = useState<Goal | null>(null);
   const [showObjectifModal, setShowObjectifModal] = useState(false);
+  const initialLoadDone = useRef(false);
 
   const loadAll = useCallback(async () => {
+    if (!initialLoadDone.current) setLoading(true);
     try {
       const supabase = createClient();
       const [{ data: v }, { data: p }, { data: g }] = await Promise.all([
@@ -161,6 +163,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {
       console.error("DataContext loadAll:", e);
     }
+    initialLoadDone.current = true;
     setLoading(false);
   }, []);
 
@@ -203,6 +206,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("focus", onFocus);
     };
+  }, [loadAll]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") loadAll();
+    }, 15000);
+    return () => clearInterval(interval);
   }, [loadAll]);
 
   const goalStats = useMemo((): GoalStats | null => {

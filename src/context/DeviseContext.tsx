@@ -76,22 +76,22 @@ export function DeviseProvider({ children }: { children: ReactNode }) {
   const [deviseActuelle, setDeviseActuelle] = useState("FCFA");
   const [deviseBase, setDeviseBaseState] = useState("FCFA");
 
-  useEffect(() => {
-    async function syncDevise() {
-      try {
-        const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-        const { data } = await supabase
-          .from("profiles")
-          .select("devise, devise_base")
-          .eq("id", user.id)
-          .single();
-        if (data?.devise) setDeviseActuelle(data.devise);
-        if (data?.devise_base) setDeviseBaseState(data.devise_base);
-      } catch { }
-    }
+  const syncDevise = useCallback(async () => {
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("devise, devise_base")
+        .eq("id", user.id)
+        .single();
+      if (data?.devise) setDeviseActuelle(data.devise);
+      if (data?.devise_base) setDeviseBaseState(data.devise_base);
+    } catch { }
+  }, []);
 
+  useEffect(() => {
     const supabase = createClient();
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
       if (session && (event === "INITIAL_SESSION" || event === "SIGNED_IN")) {
@@ -99,7 +99,27 @@ export function DeviseProvider({ children }: { children: ReactNode }) {
       }
     });
     return () => subscription.unsubscribe();
-  }, []);
+  }, [syncDevise]);
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") syncDevise();
+    };
+    const onFocus = () => syncDevise();
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onFocus);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [syncDevise]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") syncDevise();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [syncDevise]);
 
   const setDevise = useCallback((d: string) => {
     setDeviseActuelle(d);

@@ -1,5 +1,5 @@
 "use client";
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 
@@ -65,22 +65,9 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   const [isOnboardingDone, setIsOnboardingDone] = useState(false);
   const [showShopifyModal, setShowShopifyModal] = useState(false);
   const [loading, setLoading] = useState(true);
+  const initialLoadDone = useRef(false);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const supabase = createClient();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
-      if (session && (event === "INITIAL_SESSION" || event === "SIGNED_IN")) {
-        loadProfile();
-      } else if (!session && event === "INITIAL_SESSION") {
-        setLoading(false);
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     try {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
@@ -122,8 +109,43 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       console.error("OnboardingContext loadProfile:", e);
     }
+    initialLoadDone.current = true;
     setLoading(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const supabase = createClient();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
+      if (session && (event === "INITIAL_SESSION" || event === "SIGNED_IN")) {
+        loadProfile();
+      } else if (!session && event === "INITIAL_SESSION") {
+        setLoading(false);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [loadProfile]);
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") loadProfile();
+    };
+    const onFocus = () => loadProfile();
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onFocus);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [loadProfile]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") loadProfile();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [loadProfile]);
 
   const updateProfile = useCallback(async (updates: Partial<UserProfile>) => {
     setUserProfile(prev => ({ ...prev, ...updates }));

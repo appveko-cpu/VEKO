@@ -1,5 +1,5 @@
 "use client";
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 
@@ -72,20 +72,9 @@ export function UserLevelProvider({ children }: { children: ReactNode }) {
   const [showLevelUpModal, setShowLevelUpModal] = useState(false);
   const [newLevel, setNewLevel] = useState<UserLevel | null>(null);
   const [loading, setLoading] = useState(true);
+  const initialLoadDone = useRef(false);
 
-  useEffect(() => {
-    const supabase = createClient();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
-      if (session && (event === "INITIAL_SESSION" || event === "SIGNED_IN")) {
-        loadUserLevel();
-      } else if (!session && event === "INITIAL_SESSION") {
-        setLoading(false);
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const loadUserLevel = async () => {
+  const loadUserLevel = useCallback(async () => {
     try {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
@@ -113,8 +102,41 @@ export function UserLevelProvider({ children }: { children: ReactNode }) {
       setCurrentLevel("starter");
       setXpPoints(0);
     }
+    initialLoadDone.current = true;
     setLoading(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    const supabase = createClient();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
+      if (session && (event === "INITIAL_SESSION" || event === "SIGNED_IN")) {
+        loadUserLevel();
+      } else if (!session && event === "INITIAL_SESSION") {
+        setLoading(false);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [loadUserLevel]);
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") loadUserLevel();
+    };
+    const onFocus = () => loadUserLevel();
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onFocus);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [loadUserLevel]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") loadUserLevel();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [loadUserLevel]);
 
   const addXP = useCallback(async (amount: number, reason: string) => {
     const newXP = xpPoints + amount;
