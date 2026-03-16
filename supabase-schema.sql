@@ -129,3 +129,9 @@ CREATE POLICY "labo_history_own" ON public.labo_history FOR ALL
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS shopify_orders_count integer DEFAULT 0;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS shopify_revenue numeric DEFAULT 0;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS shopify_last_sync timestamptz;
+
+-- ── COLONNES SHOPIFY VENTES ───────────────────────────
+ALTER TABLE ventes ADD COLUMN IF NOT EXISTS source text DEFAULT 'manual';
+ALTER TABLE ventes ADD COLUMN IF NOT EXISTS shopify_order_id text;
+ALTER TABLE ventes ADD COLUMN IF NOT EXISTS shopify_status text DEFAULT 'pending';
+ALTER TABLE ventes ADD COLUMN IF NOT EXISTS shopify_note text;

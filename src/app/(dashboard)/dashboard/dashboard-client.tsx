@@ -1,8 +1,10 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useDevise } from "@/context/DeviseContext";
 import { useData } from "@/context/DataContext";
+import { createClient } from "@/lib/supabase/client";
+import type { User } from "@supabase/supabase-js";
 import OnboardingChecklist from "@/components/onboarding/OnboardingChecklist";
 
 type Period = "jour" | "semaine" | "mois" | "tout";
@@ -95,6 +97,7 @@ function ChartSVG({
     label: string;
     produit?: string;
     isMulti?: boolean;
+    pinned?: boolean;
   } | null>(null);
 
   const W = 520, H = 270;
@@ -102,7 +105,7 @@ function ChartSVG({
   const cW = W - pL - pR;
   const cH = H - pT - pB;
   const n = labels.length;
-  const xStep = n > 1 ? cW / (n - 1) : 0;
+  const xStep = n > 1 ? cW / (n - 1) : cW;
   const bottomY = pT + cH;
 
   const isMulti = multiProduitData && multiProduitData.length > 1;
@@ -113,8 +116,8 @@ function ChartSVG({
   const dataMax = allVals.length > 0 ? Math.max(...allVals) : 1;
   const { niceMax, ticks } = computeNiceAxis(dataMax);
 
-  const caPoints = caData.map((v, i) => ({ x: pL + i * xStep, y: pT + cH - (v / niceMax) * cH }));
-  const benPoints = beneficeData.map((v, i) => ({ x: pL + i * xStep, y: pT + cH - (v / niceMax) * cH }));
+  const caPoints = caData.map((v, i) => ({ x: pL + i * xStep, y: pT + cH - (Math.max(0, v) / niceMax) * cH }));
+  const benPoints = beneficeData.map((v, i) => ({ x: pL + i * xStep, y: pT + cH - (Math.max(0, v) / niceMax) * cH }));
 
   const caSmooth = smoothPath(caPoints, bottomY);
   const benSmooth = smoothPath(benPoints, bottomY);
@@ -124,7 +127,7 @@ function ChartSVG({
   const multiProduitPoints = isMulti 
     ? multiProduitData.map(p => ({
         ...p,
-        points: p.data.map((v, i) => ({ x: pL + i * xStep, y: pT + cH - (v / niceMax) * cH }))
+        points: p.data.map((v, i) => ({ x: pL + i * xStep, y: pT + cH - (Math.max(0, v) / niceMax) * cH }))
       }))
     : null;
 
@@ -138,8 +141,34 @@ function ChartSVG({
     return Math.round(convertir(v)).toLocaleString("fr-FR");
   };
 
+  const buildTipSingle = (i: number) => ({
+    idx: i,
+    x: pL + i * xStep,
+    y: Math.min(caPoints[i]?.y ?? bottomY, benPoints[i]?.y ?? bottomY),
+    ca: caData[i] ?? 0,
+    benef: beneficeData[i] ?? 0,
+    label: labels[i] ?? "",
+  });
+
+  const buildTipMulti = (pi: number, i: number) => ({
+    idx: i,
+    x: pL + i * xStep,
+    y: multiProduitPoints ? multiProduitPoints[pi].points[i]?.y ?? bottomY : bottomY,
+    ca: multiProduitData ? multiProduitData[pi].data[i] ?? 0 : 0,
+    benef: 0,
+    label: labels[i] ?? "",
+    produit: multiProduitData ? multiProduitData[pi].produit : "",
+    isMulti: true as const,
+  });
+
+  const tipW = hoveredPoint?.isMulti ? 120 : 138;
+  const tipH = hoveredPoint?.isMulti ? 46 : 58;
+  const tipX = hoveredPoint ? Math.max(8, Math.min(hoveredPoint.x - tipW / 2, W - tipW - 8)) : 0;
+  const tipY = hoveredPoint ? Math.max(8, Math.min(hoveredPoint.y - tipH - 12, bottomY - tipH - 4)) : 0;
+
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: "block" }}>
+    <div style={{ position: "relative", lineHeight: 0 }} onClick={() => setHoveredPoint(null)}>
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: "block", touchAction: "pan-y" }}>
       <defs>
         <linearGradient id="evo-ca-grad" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3" />
@@ -175,6 +204,16 @@ function ChartSVG({
         ) : null
       ))}
 
+      {hoveredPoint && (
+        <line
+          x1={hoveredPoint.x} y1={pT}
+          x2={hoveredPoint.x} y2={bottomY}
+          stroke="rgba(255,255,255,0.18)"
+          strokeWidth="1.5"
+          strokeDasharray="4,3"
+        />
+      )}
+
       {isMulti ? (
         <>
           {multiProduitPoints!.map((p, pi) => {
@@ -186,15 +225,28 @@ function ChartSVG({
                 <path d={pathSmooth} stroke={p.color.border} strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                 {p.points.map((pt, i) => (
                   <g key={`pt-${pi}-${i}`}>
-                    <circle 
-                      cx={pt.x} cy={pt.y} r="16" fill="transparent" 
+                    <circle
+                      cx={pt.x} cy={pt.y} r="18" fill="transparent"
                       style={{ cursor: "pointer" }}
-                      onMouseEnter={() => setHoveredPoint({
-                        idx: i, x: pt.x, y: pt.y - 10,
-                        ca: p.data[i], benef: 0, label: labels[i],
-                        produit: p.produit, isMulti: true
-                      })}
-                      onMouseLeave={() => setHoveredPoint(null)}
+                      onMouseEnter={() => setHoveredPoint(prev => prev?.pinned ? prev : buildTipMulti(pi, i))}
+                      onMouseLeave={() => setHoveredPoint(prev => prev?.pinned ? prev : null)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setHoveredPoint(prev =>
+                          prev?.pinned && prev.idx === i && prev.produit === p.produit
+                            ? null
+                            : { ...buildTipMulti(pi, i), pinned: true }
+                        );
+                      }}
+                      onTouchStart={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setHoveredPoint(prev =>
+                          prev?.pinned && prev.idx === i && prev.produit === p.produit
+                            ? null
+                            : { ...buildTipMulti(pi, i), pinned: true }
+                        );
+                      }}
                     />
                     <circle 
                       cx={pt.x} cy={pt.y} 
@@ -202,7 +254,7 @@ function ChartSVG({
                       fill={p.color.border} 
                       stroke="var(--dark-card)" 
                       strokeWidth="1.5"
-                      style={{ transition: "r 0.15s ease" }}
+                      style={{ transition: "r 0.15s ease", pointerEvents: "none" }}
                     />
                   </g>
                 ))}
@@ -216,39 +268,58 @@ function ChartSVG({
           {benArea && <path d={benArea} fill="url(#evo-ben-grad)" />}
           {caSmooth && <path d={caSmooth} stroke="#3b82f6" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />}
           {benSmooth && <path d={benSmooth} stroke="#10b981" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />}
-          
+
           {caPoints.map((p, i) => (
-            <g key={`ca-hover-${i}`}>
-              <circle 
-                cx={p.x} cy={p.y} r="16" fill="transparent"
-                style={{ cursor: "pointer" }}
-                onMouseEnter={() => setHoveredPoint({
-                  idx: i, x: p.x, y: Math.min(p.y, benPoints[i].y) - 10,
-                  ca: caData[i], benef: beneficeData[i], label: labels[i]
-                })}
-                onMouseLeave={() => setHoveredPoint(null)}
-              />
-              <circle 
-                cx={p.x} cy={p.y} 
-                r={hoveredPoint?.idx === i ? 6 : 4} 
-                fill="#3b82f6" 
-                stroke="var(--dark-card)" 
-                strokeWidth="1.5"
-                style={{ transition: "r 0.15s ease" }}
-              />
-            </g>
+            <circle 
+              key={`ca-dot-${i}`}
+              cx={p.x} cy={p.y} 
+              r={hoveredPoint?.idx === i ? 5.5 : 3.5} 
+              fill="#3b82f6" 
+              stroke="var(--dark-card)" 
+              strokeWidth="1.5"
+              style={{ transition: "r 0.15s ease", pointerEvents: "none" }}
+            />
           ))}
           {benPoints.map((p, i) => (
             <circle 
-              key={`bn-${i}`} 
+              key={`bn-dot-${i}`}
               cx={p.x} cy={p.y} 
-              r={hoveredPoint?.idx === i ? 5 : 3.5} 
+              r={hoveredPoint?.idx === i ? 5.5 : 3.5} 
               fill="#10b981" 
               stroke="var(--dark-card)" 
               strokeWidth="1.5"
-              style={{ transition: "r 0.15s ease" }}
+              style={{ transition: "r 0.15s ease", pointerEvents: "none" }}
             />
           ))}
+
+          {Array.from({ length: n }).map((_, i) => {
+            const slabX = n > 1 ? Math.max(pL, pL + i * xStep - xStep / 2) : pL;
+            const slabW = n > 1 ? xStep : cW;
+            return (
+              <rect
+                key={`slab-${i}`}
+                x={slabX} y={pT}
+                width={slabW} height={cH}
+                fill="transparent"
+                style={{ cursor: "pointer" }}
+                onMouseEnter={() => setHoveredPoint(prev => prev?.pinned ? prev : buildTipSingle(i))}
+                onMouseLeave={() => setHoveredPoint(prev => prev?.pinned ? prev : null)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setHoveredPoint(prev =>
+                    prev?.pinned && prev.idx === i ? null : { ...buildTipSingle(i), pinned: true }
+                  );
+                }}
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setHoveredPoint(prev =>
+                    prev?.pinned && prev.idx === i ? null : { ...buildTipSingle(i), pinned: true }
+                  );
+                }}
+              />
+            );
+          })}
         </>
       )}
 
@@ -260,69 +331,64 @@ function ChartSVG({
         ) : null
       ))}
 
-      {hoveredPoint && (
-        <g>
-          <rect
-            x={Math.max(5, Math.min(hoveredPoint.x - 65, W - 135))} 
-            y={Math.max(5, hoveredPoint.y - 60)}
-            width={hoveredPoint.isMulti ? 110 : 130} 
-            height={hoveredPoint.isMulti ? 42 : 52} 
-            rx="8"
-            fill="rgba(17,24,39,0.95)"
-            stroke="rgba(255,255,255,0.15)"
-            strokeWidth="1"
-          />
-          <text 
-            x={Math.max(5, Math.min(hoveredPoint.x - 65, W - 135)) + (hoveredPoint.isMulti ? 55 : 65)} 
-            y={Math.max(5, hoveredPoint.y - 60) + 16} 
-            textAnchor="middle" 
-            fontSize="10" 
-            fill="#9ca3af" 
-            fontWeight="600"
-            fontFamily="Inter, sans-serif"
-          >
-            {hoveredPoint.label}
-          </text>
-          {hoveredPoint.isMulti ? (
-            <>
-              <text 
-                x={Math.max(5, Math.min(hoveredPoint.x - 65, W - 135)) + 8} 
-                y={Math.max(5, hoveredPoint.y - 60) + 34} 
-                fontSize="10" 
-                fill="white"
-                fontWeight="600"
+      {hoveredPoint && (() => {
+        const innerX = tipX + 10;
+        return (
+          <g>
+            <rect
+              x={tipX} y={tipY}
+              width={tipW} height={tipH}
+              rx="9"
+              fill="rgba(15,23,42,0.97)"
+              stroke={hoveredPoint.pinned ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.14)"}
+              strokeWidth={hoveredPoint.pinned ? 1.5 : 1}
+              style={{ filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.5))" }}
+            />
+            <text
+              x={tipX + tipW / 2} y={tipY + 15}
+              textAnchor="middle"
+              fontSize="9.5" fill="#9ca3af" fontWeight="700"
+              fontFamily="Inter, sans-serif"
+            >
+              {hoveredPoint.label}
+            </text>
+            {hoveredPoint.isMulti ? (
+              <>
+                <circle cx={innerX + 5} cy={tipY + 32} r="4" fill={multiProduitData?.find(p => p.produit === hoveredPoint.produit)?.color.border ?? "#fff"} />
+                <text x={innerX + 14} y={tipY + 36} fontSize="10" fill="white" fontWeight="700" fontFamily="Inter, sans-serif">
+                  {(hoveredPoint.produit ?? "").length > 12
+                    ? (hoveredPoint.produit ?? "").slice(0, 12) + "…"
+                    : hoveredPoint.produit} : {fmtTooltip(hoveredPoint.ca)}
+                </text>
+              </>
+            ) : (
+              <>
+                <circle cx={innerX + 4} cy={tipY + 31} r="4" fill="#3b82f6" />
+                <text x={innerX + 13} y={tipY + 35} fontSize="10" fill="#93c5fd" fontWeight="700" fontFamily="Inter, sans-serif">
+                  CA : {fmtTooltip(hoveredPoint.ca)}
+                </text>
+                <circle cx={innerX + 4} cy={tipY + 47} r="4" fill="#10b981" />
+                <text x={innerX + 13} y={tipY + 51} fontSize="10" fill="#6ee7b7" fontWeight="700" fontFamily="Inter, sans-serif">
+                  Bénéfice : {fmtTooltip(hoveredPoint.benef)}
+                </text>
+              </>
+            )}
+            {hoveredPoint.pinned && (
+              <text
+                x={tipX + tipW - 12} y={tipY + 13}
+                textAnchor="middle" fontSize="9" fill="rgba(255,255,255,0.45)"
                 fontFamily="Inter, sans-serif"
+                style={{ cursor: "pointer" }}
+                onClick={(e) => { e.stopPropagation(); setHoveredPoint(null); }}
               >
-                {hoveredPoint.produit}: {fmtTooltip(hoveredPoint.ca)}
+                ✕
               </text>
-            </>
-          ) : (
-            <>
-              <text 
-                x={Math.max(5, Math.min(hoveredPoint.x - 65, W - 135)) + 8} 
-                y={Math.max(5, hoveredPoint.y - 60) + 32} 
-                fontSize="10" 
-                fill="#3b82f6"
-                fontWeight="600"
-                fontFamily="Inter, sans-serif"
-              >
-                CA: {fmtTooltip(hoveredPoint.ca)}
-              </text>
-              <text 
-                x={Math.max(5, Math.min(hoveredPoint.x - 65, W - 135)) + 8} 
-                y={Math.max(5, hoveredPoint.y - 60) + 46} 
-                fontSize="10" 
-                fill="#10b981"
-                fontWeight="600"
-                fontFamily="Inter, sans-serif"
-              >
-                Benef: {fmtTooltip(hoveredPoint.benef)}
-              </text>
-            </>
-          )}
-        </g>
-      )}
+            )}
+          </g>
+        );
+      })()}
     </svg>
+    </div>
   );
 }
 
@@ -331,14 +397,45 @@ type TopProduit = { nom: string; ca: number; benefice: number; count: number };
 export default function DashboardClient() {
   const router = useRouter();
   const { deviseActuelle, convertir } = useDevise();
-  const { ventes, loading, activeGoal, goalStats, setShowObjectifModal } = useData();
+  const { ventes, loading, activeGoal, goalStats, setShowObjectifModal, reload } = useData();
   const [period, setPeriod] = useState<Period>("mois");
   const [evoFilter, setEvoFilter] = useState<EvoFilter>("7");
   const [produitFilter, setProduitFilter] = useState<string>("");
+  const [shopifyConnected, setShopifyConnected] = useState(false);
+  const [shopifySyncing, setShopifySyncing] = useState(false);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then((res: { data: { user: User | null } }) => {
+      if (!res.data.user) return;
+      supabase.from("profiles").select("shopify_connected").eq("id", res.data.user.id).single()
+        .then((profileRes: { data: { shopify_connected?: boolean } | null }) => {
+          if (profileRes.data?.shopify_connected) setShopifyConnected(true);
+        });
+    });
+  }, []);
 
   const fmtConv = (n: number) => Math.round(convertir(n)).toLocaleString("fr-FR") + " " + deviseActuelle;
 
   const activeVentes = useMemo(() => ventes.filter((v) => !v.retournee), [ventes]);
+
+  const shopifyVentes = useMemo(() => activeVentes.filter(v => v.source === "shopify"), [activeVentes]);
+  const shopifyKpis = useMemo(() => ({
+    ca: shopifyVentes.reduce((s, v) => s + v.ca, 0),
+    benefice: shopifyVentes.reduce((s, v) => s + v.benefice, 0),
+    nb: shopifyVentes.length,
+  }), [shopifyVentes]);
+
+  async function handleShopifySync() {
+    setShopifySyncing(true);
+    try {
+      await fetch("/api/shopify/sync", { method: "POST" });
+      await reload();
+    } catch {
+      /* silencieux */
+    }
+    setShopifySyncing(false);
+  }
 
   const uniqueProduits = useMemo(() => {
     const set = new Set(activeVentes.map(v => v.produit).filter(p => p && p.trim()));
@@ -664,6 +761,57 @@ export default function DashboardClient() {
             <div className="bento-item-value" style={{ color: "var(--accent-purple)" }}>{loading ? "…" : kpis.nb}</div>
           </div>
         </div>
+
+        {/* SHOPIFY SECTION */}
+        {shopifyConnected && (
+          <div className="card" style={{ padding: "20px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <div style={{ width: "32px", height: "32px", borderRadius: "8px", background: "linear-gradient(135deg, #95bf47, #5e8e3e)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <i className="fas fa-bag-shopping" style={{ color: "#fff", fontSize: "14px" }}></i>
+                </div>
+                <span style={{ fontSize: "16px", fontWeight: 800, color: "var(--text-primary)" }}>Shopify</span>
+              </div>
+              <button
+                onClick={handleShopifySync}
+                disabled={shopifySyncing}
+                style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 14px", borderRadius: "8px", background: shopifySyncing ? "rgba(150,191,72,0.1)" : "rgba(150,191,72,0.15)", border: "1px solid rgba(150,191,72,0.4)", color: "#96bf48", cursor: shopifySyncing ? "not-allowed" : "pointer", fontSize: "12px", fontWeight: 700, fontFamily: "var(--font-inter), sans-serif" }}
+              >
+                <i className={`fas fa-rotate${shopifySyncing ? " fa-spin" : ""}`} style={{ fontSize: "12px" }}></i>
+                {shopifySyncing ? "Sync..." : "Synchro"}
+              </button>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px" }}>
+              <div style={{ background: "var(--dark-elevated)", borderRadius: "12px", padding: "14px 12px", textAlign: "center" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", marginBottom: "6px" }}>
+                  <div style={{ width: "14px", height: "14px", borderRadius: "3px", background: "linear-gradient(135deg, #95bf47, #5e8e3e)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <i className="fas fa-bag-shopping" style={{ color: "#fff", fontSize: "7px" }}></i>
+                  </div>
+                  <span style={{ fontSize: "10px", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>CA</span>
+                </div>
+                <div style={{ fontSize: "16px", fontWeight: 900, color: "var(--accent-blue)" }}>{fmtConv(shopifyKpis.ca)}</div>
+              </div>
+              <div style={{ background: "var(--dark-elevated)", borderRadius: "12px", padding: "14px 12px", textAlign: "center" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", marginBottom: "6px" }}>
+                  <div style={{ width: "14px", height: "14px", borderRadius: "3px", background: "linear-gradient(135deg, #95bf47, #5e8e3e)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <i className="fas fa-bag-shopping" style={{ color: "#fff", fontSize: "7px" }}></i>
+                  </div>
+                  <span style={{ fontSize: "10px", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>Bénéfice</span>
+                </div>
+                <div style={{ fontSize: "16px", fontWeight: 900, color: shopifyKpis.benefice >= 0 ? "var(--accent-green)" : "var(--accent-red)" }}>{fmtConv(shopifyKpis.benefice)}</div>
+              </div>
+              <div style={{ background: "var(--dark-elevated)", borderRadius: "12px", padding: "14px 12px", textAlign: "center" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", marginBottom: "6px" }}>
+                  <div style={{ width: "14px", height: "14px", borderRadius: "3px", background: "linear-gradient(135deg, #95bf47, #5e8e3e)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <i className="fas fa-bag-shopping" style={{ color: "#fff", fontSize: "7px" }}></i>
+                  </div>
+                  <span style={{ fontSize: "10px", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>Commandes</span>
+                </div>
+                <div style={{ fontSize: "24px", fontWeight: 900, color: "#96bf48" }}>{shopifyKpis.nb}</div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* 4. JAUGES PERFORMANCE */}
         <div className="card">

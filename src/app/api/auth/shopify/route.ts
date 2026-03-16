@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { createHmac, timingSafeEqual } from "crypto";
+import { syncShopifyOrders } from "@/lib/shopify/sync-orders";
 
 function validateShopifyHmac(searchParams: URLSearchParams, secret: string): boolean {
   const pairs: string[] = [];
@@ -116,6 +117,12 @@ export async function GET(request: NextRequest) {
   }).eq("id", cookieData.userId);
 
   if (updateError) return errorRedirect("db_update_failed");
+
+  try {
+    await syncShopifyOrders(cookieData.userId, shop, accessToken, supabaseAdmin);
+  } catch {
+    /* sync optionnelle — ne bloque pas la redirection */
+  }
 
   const response = NextResponse.redirect(`${appUrl}/dashboard/parametres?shopify=success`);
   response.cookies.delete("shopify_oauth");

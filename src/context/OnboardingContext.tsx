@@ -104,10 +104,20 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
 
         if (data.onboarding_completed_at) {
           setIsOnboardingDone(true);
+          localStorage.setItem(`veko_onboarding_done_${user.id}`, "1");
         }
       }
     } catch (e) {
       console.error("OnboardingContext loadProfile:", e);
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user && localStorage.getItem(`veko_onboarding_done_${user.id}`)) {
+          setIsOnboardingDone(true);
+        }
+      } catch {
+        /* impossible de récupérer l'utilisateur, on laisse le state tel quel */
+      }
     }
     initialLoadDone.current = true;
     setLoading(false);
@@ -179,11 +189,19 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   const skipOnboarding = useCallback(async () => {
     setIsOnboardingDone(true);
     await updateProfile({ onboardingCompletedAt: new Date().toISOString() });
+    try {
+      const { data: { user } } = await createClient().auth.getUser();
+      if (user) localStorage.setItem(`veko_onboarding_done_${user.id}`, "1");
+    } catch { /* silencieux */ }
   }, [updateProfile]);
 
   const completeOnboarding = useCallback(async () => {
     setIsOnboardingDone(true);
     await updateProfile({ onboardingCompletedAt: new Date().toISOString() });
+    try {
+      const { data: { user } } = await createClient().auth.getUser();
+      if (user) localStorage.setItem(`veko_onboarding_done_${user.id}`, "1");
+    } catch { /* silencieux */ }
   }, [updateProfile]);
 
   const isTooltipSeen = useCallback((tooltipId: string): boolean => {

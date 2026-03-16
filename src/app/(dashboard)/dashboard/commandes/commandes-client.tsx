@@ -57,7 +57,7 @@ function fmt(n: number, d: string) {
 
 export default function CommandesClient() {
   const { deviseActuelle } = useDevise();
-  const { ventes, loading, deleteVente, marquerRetournee, repartirPubJour } = useData();
+  const { ventes, loading, deleteVente, marquerRetournee, repartirPubJour, updateShopifyOrder } = useData();
   const { showToast } = useToast();
 
   const [periode, setPeriode] = useState<Periode>("today");
@@ -68,6 +68,9 @@ export default function CommandesClient() {
   const [showRepartir, setShowRepartir] = useState(false);
   const [devisePubRepartir, setDevisePubRepartir] = useState("");
   const [tauxPubRepartir, setTauxPubRepartir] = useState("1");
+  const [noteTarget, setNoteTarget] = useState<string | null>(null);
+  const [noteText, setNoteText] = useState("");
+  const [shopifyLoading, setShopifyLoading] = useState<string | null>(null);
 
   useEffect(() => {
     if (devisePubRepartir && devisePubRepartir !== deviseActuelle) {
@@ -142,6 +145,31 @@ export default function CommandesClient() {
     setDevisePubRepartir("");
     setTauxPubRepartir("1");
     setShowRepartir(false);
+  }
+
+  async function handleShopifyPaid(id: string) {
+    setShopifyLoading(id);
+    await updateShopifyOrder(id, { shopify_status: "paid" });
+    showToast("Commande marquée comme payée.", "success");
+    setShopifyLoading(null);
+  }
+
+  async function handleShopifyCancelled(id: string) {
+    setShopifyLoading(id);
+    await updateShopifyOrder(id, { shopify_status: "cancelled" });
+    showToast("Commande marquée comme annulée.", "warning");
+    setShopifyLoading(null);
+  }
+
+  async function handleSaveNote(id: string) {
+    const trimmed = noteText.trim();
+    await updateShopifyOrder(id, {
+      shopify_status: trimmed ? "custom" : "pending",
+      shopify_note: trimmed || null,
+    });
+    showToast("Note enregistrée.", "success");
+    setNoteTarget(null);
+    setNoteText("");
   }
 
   return (
@@ -340,15 +368,24 @@ export default function CommandesClient() {
             <div>
               {ventesFiltrees.map((v) => {
                 const isRetournee = v.retournee;
+                const isShopify = v.source === "shopify";
                 const isPerte = v.benefice < 0;
                 const isMoyen = !isRetournee && v.marge >= 15 && v.marge < 30;
                 const isExcellent = !isRetournee && v.marge >= 30;
                 const dotColor = isRetournee ? "#94a3b8" : isPerte ? "#ef4444" : isMoyen ? "#f97316" : isExcellent ? "#10b981" : "#f97316";
                 const badge = isRetournee ? "RETOUR" : isPerte ? "PERTE" : isMoyen ? "MOYEN" : "EXCELLENT";
                 const isOpen = expandedId === v.id;
+                const isLoadingThis = shopifyLoading === v.id;
+
+                const shopifyStatusBadge = isShopify && !isRetournee ? (() => {
+                  if (v.shopify_status === "paid") return { label: "PAYÉ", color: "#10b981", bg: "rgba(16,185,129,0.12)", border: "rgba(16,185,129,0.3)" };
+                  if (v.shopify_status === "cancelled") return { label: "ANNULÉ", color: "#ef4444", bg: "rgba(239,68,68,0.12)", border: "rgba(239,68,68,0.3)" };
+                  if (v.shopify_status === "custom") return { label: (v.shopify_note ?? "").slice(0, 18) + ((v.shopify_note ?? "").length > 18 ? "…" : ""), color: "#3b82f6", bg: "rgba(59,130,246,0.12)", border: "rgba(59,130,246,0.3)" };
+                  return { label: "EN ATTENTE", color: "#94a3b8", bg: "rgba(148,163,184,0.12)", border: "rgba(148,163,184,0.3)" };
+                })() : null;
 
                 return (
-                  <div key={v.id} style={{ background: "var(--dark-elevated)", borderRadius: "12px", marginBottom: "8px", border: `1px solid ${isRetournee ? "rgba(148,163,184,0.2)" : "var(--diamond-border)"}`, opacity: isRetournee ? 0.75 : 1, overflow: "hidden" }}>
+                  <div key={v.id} style={{ background: "var(--dark-elevated)", borderRadius: "12px", marginBottom: "8px", border: `1px solid ${isRetournee ? "rgba(148,163,184,0.2)" : isShopify ? "rgba(150,191,72,0.2)" : "var(--diamond-border)"}`, opacity: isRetournee ? 0.75 : 1, overflow: "hidden" }}>
                     <div
                       style={{ padding: "14px 18px", cursor: "pointer" }}
                       onClick={() => setExpandedId(isOpen ? null : v.id)}
@@ -356,10 +393,22 @@ export default function CommandesClient() {
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px", flexWrap: "wrap" }}>
-                            <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: dotColor, flexShrink: 0, display: "inline-block" }}></span>
+                            <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: isShopify ? "#96bf48" : dotColor, flexShrink: 0, display: "inline-block" }}></span>
                             <span style={{ fontSize: "14px", fontWeight: 700, color: "var(--text-primary)" }}>{v.nom_client || "Client anonyme"}</span>
-                            <span style={{ fontSize: "11px", fontWeight: 700, color: dotColor, background: `${dotColor}22`, borderRadius: "6px", padding: "2px 8px" }}>{badge}</span>
-                            {v.budget_pub_provisoire && !isRetournee && (
+                            {isShopify ? (
+                              <span style={{ fontSize: "11px", fontWeight: 700, color: "#96bf48", background: "rgba(150,191,72,0.12)", border: "1px solid rgba(150,191,72,0.3)", borderRadius: "6px", padding: "2px 7px", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                                <i className="fas fa-bag-shopping" style={{ fontSize: "9px" }}></i>
+                                Shopify
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: "11px", fontWeight: 700, color: dotColor, background: `${dotColor}22`, borderRadius: "6px", padding: "2px 8px" }}>{badge}</span>
+                            )}
+                            {shopifyStatusBadge && (
+                              <span style={{ fontSize: "11px", fontWeight: 700, color: shopifyStatusBadge.color, background: shopifyStatusBadge.bg, border: `1px solid ${shopifyStatusBadge.border}`, borderRadius: "6px", padding: "2px 8px" }}>
+                                {shopifyStatusBadge.label}
+                              </span>
+                            )}
+                            {v.budget_pub_provisoire && !isRetournee && !isShopify && (
                               <span style={{ fontSize: "11px", color: "#f97316", fontWeight: 700 }}>(pub provisoire)</span>
                             )}
                           </div>
@@ -394,7 +443,59 @@ export default function CommandesClient() {
                           ))}
                         </div>
 
-                        {!isRetournee && (
+                        {isShopify && !isRetournee && (
+                          <div>
+                            <div style={{ display: "flex", gap: "8px", marginBottom: noteTarget === v.id ? "10px" : "0" }}>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleShopifyPaid(v.id); }}
+                                disabled={isLoadingThis || v.shopify_status === "paid"}
+                                style={{ flex: 1, padding: "10px", borderRadius: "10px", background: v.shopify_status === "paid" ? "rgba(16,185,129,0.2)" : "rgba(16,185,129,0.1)", border: `1px solid rgba(16,185,129,${v.shopify_status === "paid" ? "0.5" : "0.3"})`, color: "#10b981", cursor: isLoadingThis || v.shopify_status === "paid" ? "not-allowed" : "pointer", fontSize: "13px", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", fontFamily: "var(--font-inter), sans-serif", opacity: isLoadingThis ? 0.6 : 1 }}
+                              >
+                                <i className="fas fa-check-circle"></i> Payé
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleShopifyCancelled(v.id); }}
+                                disabled={isLoadingThis || v.shopify_status === "cancelled"}
+                                style={{ flex: 1, padding: "10px", borderRadius: "10px", background: v.shopify_status === "cancelled" ? "rgba(239,68,68,0.2)" : "rgba(239,68,68,0.1)", border: `1px solid rgba(239,68,68,${v.shopify_status === "cancelled" ? "0.5" : "0.3"})`, color: "#ef4444", cursor: isLoadingThis || v.shopify_status === "cancelled" ? "not-allowed" : "pointer", fontSize: "13px", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", fontFamily: "var(--font-inter), sans-serif", opacity: isLoadingThis ? 0.6 : 1 }}
+                              >
+                                <i className="fas fa-ban"></i> Annulé
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setNoteTarget(noteTarget === v.id ? null : v.id); setNoteText(v.shopify_note ?? ""); }}
+                                style={{ flex: 1, padding: "10px", borderRadius: "10px", background: noteTarget === v.id ? "rgba(59,130,246,0.2)" : "rgba(59,130,246,0.1)", border: `1px solid rgba(59,130,246,${noteTarget === v.id ? "0.5" : "0.3"})`, color: "#3b82f6", cursor: "pointer", fontSize: "13px", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", fontFamily: "var(--font-inter), sans-serif" }}
+                              >
+                                <i className="fas fa-pen"></i> Note
+                              </button>
+                            </div>
+                            {noteTarget === v.id && (
+                              <div style={{ marginTop: "10px" }}>
+                                <textarea
+                                  value={noteText}
+                                  onChange={(e) => setNoteText(e.target.value)}
+                                  placeholder="Ex: Client à rappeler demain à 14h..."
+                                  rows={3}
+                                  style={{ width: "100%", padding: "10px 12px", background: "var(--dark-elevated)", border: "1px solid var(--diamond-border)", borderRadius: "10px", color: "var(--text-primary)", fontSize: "13px", fontFamily: "var(--font-inter), sans-serif", resize: "vertical", outline: "none", boxSizing: "border-box" }}
+                                />
+                                <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); handleSaveNote(v.id); }}
+                                    style={{ flex: 2, padding: "10px", borderRadius: "10px", background: "rgba(59,130,246,0.15)", border: "1px solid rgba(59,130,246,0.4)", color: "#3b82f6", cursor: "pointer", fontSize: "13px", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", fontFamily: "var(--font-inter), sans-serif" }}
+                                  >
+                                    <i className="fas fa-floppy-disk"></i> Sauvegarder
+                                  </button>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); setNoteTarget(null); setNoteText(""); }}
+                                    style={{ flex: 1, padding: "10px", borderRadius: "10px", background: "transparent", border: "1px solid var(--diamond-border)", color: "var(--text-muted)", cursor: "pointer", fontSize: "13px", fontWeight: 600, fontFamily: "var(--font-inter), sans-serif" }}
+                                  >
+                                    Annuler
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {!isShopify && !isRetournee && (
                           <div style={{ display: "flex", gap: "8px" }}>
                             <button
                               onClick={() => handleRetournee(v.id)}
@@ -410,7 +511,7 @@ export default function CommandesClient() {
                             </button>
                           </div>
                         )}
-                        {isRetournee && (
+                        {!isShopify && isRetournee && (
                           <button
                             onClick={() => handleDelete(v.id)}
                             style={{ width: "100%", padding: "10px", borderRadius: "10px", background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444", cursor: "pointer", fontSize: "13px", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", fontFamily: "var(--font-inter), sans-serif" }}

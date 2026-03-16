@@ -73,6 +73,7 @@ export function UserLevelProvider({ children }: { children: ReactNode }) {
   const [newLevel, setNewLevel] = useState<UserLevel | null>(null);
   const [loading, setLoading] = useState(true);
   const initialLoadDone = useRef(false);
+  const rewardedReasons = useRef(new Set<string>());
 
   const loadUserLevel = useCallback(async () => {
     try {
@@ -139,6 +140,9 @@ export function UserLevelProvider({ children }: { children: ReactNode }) {
   }, [loadUserLevel]);
 
   const addXP = useCallback(async (amount: number, reason: string) => {
+    if (rewardedReasons.current.has(reason)) return;
+    rewardedReasons.current.add(reason);
+
     const newXP = xpPoints + amount;
     const oldLevel = currentLevel;
     const newLevelCalc = calculateLevel(newXP);

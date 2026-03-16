@@ -19,6 +19,10 @@ export type Vente = {
   budget_pub_provisoire: boolean;
   retournee: boolean;
   created_at?: string;
+  source?: string;
+  shopify_order_id?: string;
+  shopify_status?: string;
+  shopify_note?: string | null;
 };
 
 export type Produit = {
@@ -63,6 +67,8 @@ type DataContextType = {
   deleteVente: (id: string) => Promise<void>;
   marquerRetournee: (id: string) => Promise<void>;
   repartirPubJour: (budgetTotal: number) => Promise<void>;
+  updateShopifyOrder: (id: string, patch: { shopify_status?: string; shopify_note?: string | null }) => Promise<void>;
+  reload: () => Promise<void>;
   addProduit: (p: Omit<Produit, "id" | "created_at" | "user_id">) => Promise<boolean>;
   updateProduit: (id: string, p: Partial<Omit<Produit, "id" | "user_id">>) => Promise<boolean>;
   deleteProduit: (id: string) => Promise<void>;
@@ -100,6 +106,10 @@ function mapVente(v: Record<string, unknown>): Vente {
     budget_pub_provisoire: Boolean(v.budget_pub_provisoire),
     retournee: Boolean(v.retournee),
     created_at: v.created_at as string,
+    source: (v.source as string) ?? "manual",
+    shopify_order_id: v.shopify_order_id as string | undefined,
+    shopify_status: (v.shopify_status as string) ?? "pending",
+    shopify_note: v.shopify_note as string | undefined,
   };
 }
 
@@ -333,6 +343,20 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }));
   }, [ventes]);
 
+  const updateShopifyOrder = useCallback(async (id: string, patch: { shopify_status?: string; shopify_note?: string | null }) => {
+    try {
+      const { error } = await createClient().from("ventes").update(patch).eq("id", id);
+      if (error) throw error;
+      setVentes(prev => prev.map(v => v.id === id ? { ...v, ...patch } : v));
+    } catch (e) {
+      console.error("[DataContext] updateShopifyOrder erreur:", e);
+    }
+  }, []);
+
+  const reload = useCallback(async () => {
+    await loadAll();
+  }, [loadAll]);
+
   const addProduit = useCallback(async (p: Omit<Produit, "id" | "created_at" | "user_id">): Promise<boolean> => {
     try {
       const supabase = createClient();
@@ -447,6 +471,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     <DataContext.Provider value={{
       ventes, produits, loading,
       addVente, deleteVente, marquerRetournee, repartirPubJour,
+      updateShopifyOrder, reload,
       addProduit, updateProduit, deleteProduit,
       activeGoal, goalStats, createGoal, updateGoal, deleteGoal,
       showObjectifModal, setShowObjectifModal,

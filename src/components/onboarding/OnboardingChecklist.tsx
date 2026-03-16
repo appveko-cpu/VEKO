@@ -90,16 +90,16 @@ export default function OnboardingChecklist() {
   }, [activeGoal, userProfile.objectiveSet, updateProfile, addXP]);
 
   useEffect(() => {
-    if (allCompleted && !showCelebration) {
+    if (allCompleted && !showCelebration && !userProfile.checklistHidden) {
       setShowCelebration(true);
       triggerConfetti();
       addXP(XP_REWARDS.checklistComplete, "Checklist completee");
+      updateProfile({ checklistHidden: true });
       setTimeout(() => {
         setVisible(false);
-        updateProfile({ checklistHidden: true });
       }, 5000);
     }
-  }, [allCompleted, showCelebration, triggerConfetti, addXP, updateProfile]);
+  }, [allCompleted, showCelebration, userProfile.checklistHidden, triggerConfetti, addXP, updateProfile]);
 
   if (!isOnboardingDone) return null;
   if (userProfile.checklistHidden) return null;

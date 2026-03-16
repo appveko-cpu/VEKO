@@ -9,6 +9,10 @@ function fmt(n: number, d: string) {
   return n.toLocaleString("fr-FR") + " " + d;
 }
 
+function parseNum(s: string): number {
+  return parseFloat(s.replace(/\s/g, "").replace(",", ".")) || 0;
+}
+
 const btnNewStyle: React.CSSProperties = {
   width: "auto",
   padding: "10px 18px",
@@ -71,11 +75,11 @@ export default function ProduitsClient() {
 
   async function handleSave() {
     if (!nom.trim()) { showToast("Le nom du produit est requis.", "error"); return; }
-    const pr = parseFloat(prixRevient) || 0;
-    const ft = parseFloat(fraisTransport) || 0;
-    const pv = parseFloat(prixVente) || 0;
-    const cm = hasCommission ? (parseFloat(commission) || 0) : 0;
-    const na = nbArticles.trim() !== "" ? parseInt(nbArticles, 10) : undefined;
+    const pr = parseNum(prixRevient);
+    const ft = parseNum(fraisTransport);
+    const pv = parseNum(prixVente);
+    const cm = hasCommission ? parseNum(commission) : 0;
+    const na = nbArticles.trim() !== "" ? (parseInt(nbArticles.replace(/\s/g, ""), 10) || undefined) : undefined;
 
     let success = false;
     if (editId) {
@@ -155,20 +159,20 @@ export default function ProduitsClient() {
                 </div>
                 <div className="calc-field">
                   <label className="calc-label">PRIX DE REVIENT UNITAIRE ({deviseActuelle})</label>
-                  <input className="form-input" type="number" min="0" value={prixRevient} onChange={(e) => setPrixRevient(e.target.value)} onWheel={(e) => (e.target as HTMLInputElement).blur()} placeholder="2500" />
+                  <input className="form-input" type="text" inputMode="decimal" value={prixRevient} onChange={(e) => setPrixRevient(e.target.value)} placeholder="2500" />
                 </div>
                 <div className="calc-field">
                   <label className="calc-label">FRAIS DE TRANSPORT / RÉCUPÉRATION ({deviseActuelle})</label>
-                  <input className="form-input" type="number" min="0" value={fraisTransport} onChange={(e) => setFraisTransport(e.target.value)} onWheel={(e) => (e.target as HTMLInputElement).blur()} placeholder="0 (optionnel)" />
+                  <input className="form-input" type="text" inputMode="decimal" value={fraisTransport} onChange={(e) => setFraisTransport(e.target.value)} placeholder="0 (optionnel)" />
                   <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>Taxi, livraison fournisseur, etc.</div>
                 </div>
                 <div className="calc-field">
                   <label className="calc-label">PRIX DE VENTE UNITAIRE ({deviseActuelle})</label>
-                  <input className="form-input" type="number" min="0" value={prixVente} onChange={(e) => setPrixVente(e.target.value)} onWheel={(e) => (e.target as HTMLInputElement).blur()} placeholder="5000" />
+                  <input className="form-input" type="text" inputMode="decimal" value={prixVente} onChange={(e) => setPrixVente(e.target.value)} placeholder="5000" />
                 </div>
                 <div className="calc-field">
                   <label className="calc-label">STOCK INITIAL (NOMBRE D&apos;ARTICLES)</label>
-                  <input className="form-input" type="number" min="0" value={nbArticles} onChange={(e) => setNbArticles(e.target.value)} onWheel={(e) => (e.target as HTMLInputElement).blur()} placeholder="0 (optionnel)" />
+                  <input className="form-input" type="text" inputMode="numeric" value={nbArticles} onChange={(e) => setNbArticles(e.target.value)} placeholder="0 (optionnel)" />
                 </div>
                 <div className="calc-field">
                   <label className="calc-label">AVEZ-VOUS QUELQU&apos;UN QUI GÈRE VOS COMMANDES ?</label>
@@ -186,7 +190,7 @@ export default function ProduitsClient() {
                 {hasCommission && (
                   <div className="calc-field">
                     <label className="calc-label">COMMISSION PAR PIÈCE ({deviseActuelle})</label>
-                    <input className="form-input" type="number" min="0" value={commission} onChange={(e) => setCommission(e.target.value)} onWheel={(e) => (e.target as HTMLInputElement).blur()} placeholder="0" />
+                    <input className="form-input" type="text" inputMode="decimal" value={commission} onChange={(e) => setCommission(e.target.value)} placeholder="0" />
                   </div>
                 )}
 
