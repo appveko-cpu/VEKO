@@ -12,9 +12,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${appUrl}/dashboard/parametres?shopify=error&reason=missing_shop`);
   }
 
-  let shop = shopParam.trim().replace(/^https?:\/\//, "").replace(/\/$/, "");
+  let shop = shopParam.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/$/, "");
   if (!shop.includes(".")) {
     shop = `${shop}.myshopify.com`;
+  }
+  const SHOPIFY_DOMAIN_RE = /^[a-z0-9][a-z0-9\-]*\.myshopify\.com$/;
+  if (!SHOPIFY_DOMAIN_RE.test(shop)) {
+    return NextResponse.redirect(`${appUrl}/dashboard/parametres?shopify=error`);
   }
 
   const supabase = createClient();

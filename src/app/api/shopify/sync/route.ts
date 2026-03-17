@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { syncShopifyOrders } from "@/lib/shopify/sync-orders";
+import { rateLimitResponse } from "@/lib/rate-limit";
+import { decryptToken } from "@/lib/shopify-token";
 
 export async function POST(_request: NextRequest) {
   const supabase = createClient();
@@ -10,6 +12,9 @@ export async function POST(_request: NextRequest) {
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const limited = rateLimitResponse(`shopify_sync:${user.id}`, 2, 60_000);
+  if (limited) return limited;
 
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!serviceRoleKey) {
@@ -32,11 +37,18 @@ export async function POST(_request: NextRequest) {
     return NextResponse.json({ error: "shopify_not_connected" }, { status: 400 });
   }
 
+  let plainToken: string;
+  try {
+    plainToken = decryptToken(profile.shopify_access_token);
+  } catch {
+    return NextResponse.json({ error: "token_decryption_failed" }, { status: 500 });
+  }
+
   try {
     const result = await syncShopifyOrders(
       user.id,
       profile.shopify_store_url,
-      profile.shopify_access_token,
+      plainToken,
       supabaseAdmin
     );
     return NextResponse.json(result);

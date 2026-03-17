@@ -135,3 +135,26 @@ ALTER TABLE ventes ADD COLUMN IF NOT EXISTS source text DEFAULT 'manual';
 ALTER TABLE ventes ADD COLUMN IF NOT EXISTS shopify_order_id text;
 ALTER TABLE ventes ADD COLUMN IF NOT EXISTS shopify_status text DEFAULT 'pending';
 ALTER TABLE ventes ADD COLUMN IF NOT EXISTS shopify_note text;
+
+-- ── TABLE CHARGES MENSUELLES ─────────────────────────
+CREATE TABLE IF NOT EXISTS charges_mensuelles (
+  id               uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id          uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  mois             text NOT NULL,
+  nom              text NOT NULL,
+  icone            text NOT NULL DEFAULT '📝',
+  categorie        text NOT NULL DEFAULT 'urgent',
+  montant_total    numeric NOT NULL DEFAULT 0,
+  montant_couvert  numeric NOT NULL DEFAULT 0,
+  jour_echeance    integer NOT NULL DEFAULT 1,
+  est_paye         boolean DEFAULT false,
+  paye_le          timestamptz,
+  en_pause         boolean DEFAULT false,
+  created_at       timestamptz DEFAULT now()
+);
+
+ALTER TABLE charges_mensuelles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "charges_own" ON charges_mensuelles FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);

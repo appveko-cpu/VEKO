@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { createHmac, timingSafeEqual } from "crypto";
 import { syncShopifyOrders } from "@/lib/shopify/sync-orders";
+import { encryptToken } from "@/lib/shopify-token";
 
 function validateShopifyHmac(searchParams: URLSearchParams, secret: string): boolean {
   const pairs: string[] = [];
@@ -23,8 +24,10 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://veko-app.com";
 
-  const errorRedirect = (reason: string) =>
-    NextResponse.redirect(`${appUrl}/dashboard/parametres?shopify=error&reason=${reason}`);
+  const errorRedirect = (reason: string) => {
+    console.error(`[shopify/callback] auth error: ${reason}`);
+    return NextResponse.redirect(`${appUrl}/dashboard/parametres?shopify=error`);
+  };
 
   const code = searchParams.get("code");
   const shop = searchParams.get("shop");
@@ -32,6 +35,9 @@ export async function GET(request: NextRequest) {
   const state = searchParams.get("state");
 
   if (!code || !shop || !hmac || !state) return errorRedirect("missing_params");
+
+  const SHOPIFY_DOMAIN_RE = /^[a-z0-9][a-z0-9\-]*\.myshopify\.com$/;
+  if (!SHOPIFY_DOMAIN_RE.test(shop.toLowerCase())) return errorRedirect("invalid_shop");
 
   const clientSecret = process.env.SHOPIFY_CLIENT_SECRET;
   if (!clientSecret) return errorRedirect("server_config");
@@ -71,6 +77,13 @@ export async function GET(request: NextRequest) {
     return errorRedirect("token_exchange_failed");
   }
 
+  let encryptedToken: string;
+  try {
+    encryptedToken = encryptToken(accessToken);
+  } catch {
+    return errorRedirect("token_encryption_failed");
+  }
+
   let ordersCount = 0;
   let totalRevenue = 0;
   try {
@@ -108,7 +121,7 @@ export async function GET(request: NextRequest) {
   );
 
   const { error: updateError } = await supabaseAdmin.from("profiles").update({
-    shopify_access_token: accessToken,
+    shopify_access_token: encryptedToken,
     shopify_store_url: shop,
     shopify_connected: true,
     shopify_orders_count: ordersCount,
@@ -121,7 +134,7 @@ export async function GET(request: NextRequest) {
   try {
     await syncShopifyOrders(cookieData.userId, shop, accessToken, supabaseAdmin);
   } catch {
-    /* sync optionnelle — ne bloque pas la redirection */
+    /* sync optionnelle */
   }
 
   const response = NextResponse.redirect(`${appUrl}/dashboard/parametres?shopify=success`);

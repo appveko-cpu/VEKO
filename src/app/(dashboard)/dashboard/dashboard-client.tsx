@@ -6,6 +6,7 @@ import { useData } from "@/context/DataContext";
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import OnboardingChecklist from "@/components/onboarding/OnboardingChecklist";
+import ChargesSection from "@/components/ChargesSection";
 
 type Period = "jour" | "semaine" | "mois" | "tout";
 type EvoFilter = "7" | "14" | "30";
@@ -813,36 +814,12 @@ export default function DashboardClient() {
           </div>
         )}
 
-        {/* 4. JAUGES PERFORMANCE */}
-        <div className="card">
-          <div className="section-title" style={{ marginBottom: "18px" }}>
-            <i className="fas fa-bullseye"></i>
-            Performance sur la période
-          </div>
-          <div className="activity-ring-container">
-            <svg className="activity-ring" width="160" height="160" viewBox="0 0 160 160">
-              <circle className="activity-ring-bg" cx="80" cy="80" r="68" strokeWidth="10" fill="none" />
-              <circle className="activity-ring-progress ring-benefice" cx="80" cy="80" r="68" strokeWidth="10" fill="none" strokeDasharray={B_C} strokeDashoffset={B_C - (B_C * rings.benefRing / 100)} transform="rotate(-90 80 80)" style={{ transition: "stroke-dashoffset 1s ease" }} />
-            </svg>
-            <svg className="activity-ring" width="130" height="130" viewBox="0 0 130 130">
-              <circle className="activity-ring-bg" cx="65" cy="65" r="52" strokeWidth="10" fill="none" />
-              <circle className="activity-ring-progress ring-ca" cx="65" cy="65" r="52" strokeWidth="10" fill="none" strokeDasharray={CA_C} strokeDashoffset={CA_C - (CA_C * rings.caRing / 100)} transform="rotate(-90 65 65)" style={{ transition: "stroke-dashoffset 1s ease" }} />
-            </svg>
-            <svg className="activity-ring" width="100" height="100" viewBox="0 0 100 100">
-              <circle className="activity-ring-bg" cx="50" cy="50" r="38" strokeWidth="10" fill="none" />
-              <circle className="activity-ring-progress ring-ventes" cx="50" cy="50" r="38" strokeWidth="10" fill="none" strokeDasharray={V_C} strokeDashoffset={V_C - (V_C * rings.venteRing / 100)} transform="rotate(-90 50 50)" style={{ transition: "stroke-dashoffset 1s ease" }} />
-            </svg>
-            <div className="activity-ring-center">
-              <div className="activity-ring-value">{rings.avg.toFixed(0)}%</div>
-              <div className="activity-ring-label">PÉRIODE</div>
-            </div>
-          </div>
-          <div className="activity-legend">
-            <div className="legend-item"><div className="legend-dot" style={{ background: "var(--accent-green)" }}></div><span>Bénéfice</span></div>
-            <div className="legend-item"><div className="legend-dot" style={{ background: "var(--accent-blue)" }}></div><span>CA</span></div>
-            <div className="legend-item"><div className="legend-dot" style={{ background: "var(--accent-purple)" }}></div><span>Ventes</span></div>
-          </div>
-        </div>
+        {/* 4. CHARGES À COUVRIR */}
+        <ChargesSection
+          deviseActuelle={deviseActuelle}
+          convertir={convertir}
+          beneficeMoisCourant={kpis.benefice}
+        />
 
         {/* 5. VENTES RECENTES */}
         <div className="section-title" style={{ justifyContent: "space-between" }}>

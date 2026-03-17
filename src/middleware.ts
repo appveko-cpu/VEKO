@@ -1,6 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+const MAX_SESSION_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
 
@@ -28,6 +30,16 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
+
+  if (user) {
+    const lastSignIn = user.last_sign_in_at ? new Date(user.last_sign_in_at).getTime() : 0;
+    if (lastSignIn > 0 && Date.now() - lastSignIn > MAX_SESSION_AGE_MS) {
+      await supabase.auth.signOut();
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("reason", "session_expired");
+      return NextResponse.redirect(loginUrl);
+    }
+  }
 
   if (!user && pathname.startsWith("/dashboard")) {
     return NextResponse.redirect(new URL("/login", request.url));
