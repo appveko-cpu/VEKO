@@ -63,10 +63,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  if (!user && pathname.startsWith("/api/payment/initiate")) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   if (user && (pathname === "/login" || pathname === "/signup")) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }

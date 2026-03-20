@@ -168,3 +168,11 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS essais_restants integer DEFAULT 6;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS abonnement_auto boolean DEFAULT false;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS plan_expire_at timestamptz DEFAULT null;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS plan_start_at timestamptz DEFAULT null;
+
+-- ── ACCÈS FONDATEUR ────────────────────────────────────
+-- Exécuter dans Supabase SQL Editor pour s'octroyer un accès fondateur complet.
+-- Option 1 : via la session active du Dashboard
+--   UPDATE profiles SET plan = 'fondateur', essais_restants = 999 WHERE id = auth.uid();
+-- Option 2 : avec l'UUID exact (visible dans Authentication > Users)
+--   UPDATE profiles SET plan = 'fondateur', essais_restants = 999 WHERE id = 'REMPLACER_PAR_UUID';
+

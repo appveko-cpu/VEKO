@@ -2,8 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useAccess } from "@/context/AccessContext";
-import { ACCESS_SYSTEM_ENABLED } from "@/lib/feature-flags";
 
 type Charge = {
   id: string;
@@ -82,20 +80,17 @@ export default function ChargesSection({
   convertir: (n: number) => number;
   beneficeMoisCourant: number;
 }) {
-  const { canAccess, checkAndGate, isAuthenticated } = useAccess();
   const [charges, setCharges] = useState<Charge[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editCharge, setEditCharge] = useState<Charge | null>(null);
-  const [, setSlotIndex] = useState<number>(0);
+  const [slotIndex, setSlotIndex] = useState<number>(0);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [addFondsId, setAddFondsId] = useState<string | null>(null);
   const [addFondsVal, setAddFondsVal] = useState("");
   const [saving, setSaving] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-
-  const isLocked = ACCESS_SYSTEM_ENABLED && isAuthenticated && !canAccess("charges_fixes");
 
   const fmt = useCallback((n: number) =>
     Math.round(convertir(n)).toLocaleString("fr-FR") + " " + deviseActuelle,
@@ -261,32 +256,7 @@ export default function ChargesSection({
 
   return (
     <div className="card" style={{ padding: "18px 16px" }}>
-      {isLocked && (
-        <div style={{
-          background: "rgba(139,92,246,0.08)", border: "1px dashed rgba(139,92,246,0.4)",
-          borderRadius: "14px", padding: "28px", textAlign: "center",
-        }}>
-          <i className="fas fa-lock" style={{ fontSize: "28px", color: "#8b5cf6", marginBottom: "12px", display: "block" }}></i>
-          <div style={{ fontSize: "15px", fontWeight: 700, color: "var(--text-primary)", marginBottom: "6px" }}>
-            Gestion des charges fixes
-          </div>
-          <div style={{ fontSize: "13px", color: "var(--text-muted)", marginBottom: "16px", lineHeight: 1.5 }}>
-            Disponible dans le plan Pro — Suivez vos charges mensuelles et leur impact sur votre rentabilité.
-          </div>
-          <button
-            onClick={() => checkAndGate("charges_fixes", () => {})}
-            style={{
-              background: "linear-gradient(135deg,#8b5cf6,#ec4899)", border: "none",
-              borderRadius: "10px", padding: "10px 20px", color: "white",
-              fontWeight: 800, fontSize: "14px", cursor: "pointer",
-            }}
-          >
-            <i className="fas fa-crown" style={{ marginRight: "6px" }}></i>
-            Passer au Pro
-          </button>
-        </div>
-      )}
-      {!isLocked && <>
+      <>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
         <div className="section-title" style={{ margin: 0 }}>
           <span style={{ fontSize: "16px" }}>🌡️</span>
@@ -550,7 +520,7 @@ export default function ChargesSection({
           50% { opacity: 0.6; }
         }
       `}</style>
-      </>}
+      </>
     </div>
   );
 }

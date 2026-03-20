@@ -5,9 +5,7 @@ import { useData } from "@/context/DataContext";
 import { useToast } from "@/context/ToastContext";
 import { useFelicitation } from "@/context/FelicitationContext";
 import { useOnboarding } from "@/context/OnboardingContext";
-import { useAccess } from "@/context/AccessContext";
 import TooltipGuide from "@/components/onboarding/TooltipGuide";
-import DemoDataBadge from "@/components/access/DemoDataBadge";
 
 type CalcMode = "fournisseur" | "production";
 
@@ -42,7 +40,6 @@ export default function CalcClient() {
   const { showToast } = useToast();
   const { showFelicitation } = useFelicitation();
   const { userProfile } = useOnboarding();
-  const { checkAndGate } = useAccess();
 
   const [mode, setMode] = useState<CalcMode>("fournisseur");
   const [selectedProduct, setSelectedProduct] = useState("");
@@ -207,7 +204,6 @@ export default function CalcClient() {
   return (
     <div className="main-content">
       <div className="container">
-        <DemoDataBadge />
 
         {/* ===== ETAPE 1 ===== */}
         <div className="card">
@@ -451,7 +447,7 @@ export default function CalcClient() {
           {hasResults && !resultsUnlocked && (
             <button
               className="btn btn-primary"
-              onClick={() => checkAndGate("calculer", () => setResultsUnlocked(true))}
+              onClick={() => setResultsUnlocked(true)}
               style={{ width: "100%", marginBottom: "20px" }}
             >
               <i className="fas fa-calculator"></i> Calculer
@@ -470,7 +466,7 @@ export default function CalcClient() {
             >
               <button
                 className="btn btn-primary"
-                onClick={() => checkAndGate("enregistrer_vente", handleSaveVente)}
+                onClick={handleSaveVente}
                 disabled={saving}
                 style={{ width: "100%" }}
               >

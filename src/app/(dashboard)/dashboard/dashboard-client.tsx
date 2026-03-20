@@ -7,7 +7,6 @@ import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import OnboardingChecklist from "@/components/onboarding/OnboardingChecklist";
 import ChargesSection from "@/components/ChargesSection";
-import DemoDataBadge from "@/components/access/DemoDataBadge";
 
 type Period = "jour" | "semaine" | "mois" | "tout";
 type EvoFilter = "7" | "14" | "30";
@@ -558,7 +557,6 @@ export default function DashboardClient() {
   return (
     <div className="main-content">
       <div className="container">
-        <DemoDataBadge />
         {/* CHECKLIST DE DEMARRAGE */}
         <OnboardingChecklist />
 

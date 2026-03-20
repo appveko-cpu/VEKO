@@ -4,9 +4,6 @@ import { useDevise } from "@/context/DeviseContext";
 import { createClient } from "@/lib/supabase/client";
 import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import TooltipGuide from "@/components/onboarding/TooltipGuide";
-import { useAccess } from "@/context/AccessContext";
-import { useData } from "@/context/DataContext";
-import DemoDataBadge from "@/components/access/DemoDataBadge";
 
 type Client = {
   id: string;
@@ -23,8 +20,6 @@ function fmt(n: number, d: string) {
 
 export default function ClientsClient() {
   const { deviseActuelle } = useDevise();
-  const { checkAndGate, isDemoMode } = useAccess();
-  const { ventes } = useData();
   const [clients, setClients] = useState<Client[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -63,37 +58,13 @@ export default function ClientsClient() {
   }, []);
 
   useEffect(() => {
-    if (isDemoMode) {
-      const map = new Map<string, Client>();
-      ventes.forEach((v) => {
-        const key = `${v.nom_client ?? ""}|${v.tel ?? ""}`;
-        const existing = map.get(key);
-        if (existing) {
-          existing.nbCommandes += 1;
-          existing.totalCA += v.ca ?? 0;
-          existing.totalBenefice += v.benefice ?? 0;
-        } else {
-          map.set(key, {
-            id: key,
-            nom: v.nom_client || "Anonyme",
-            tel: v.tel || "",
-            nbCommandes: 1,
-            totalCA: v.ca ?? 0,
-            totalBenefice: v.benefice ?? 0,
-          });
-        }
-      });
-      setClients(Array.from(map.values()).sort((a, b) => b.totalCA - a.totalCA));
-      setLoading(false);
-      return;
-    }
     const supabase = createClient();
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
       if (session && (event === "INITIAL_SESSION" || event === "SIGNED_IN")) load();
       else if (!session && event === "INITIAL_SESSION") setLoading(false);
     });
     return () => subscription.unsubscribe();
-  }, [load, isDemoMode, ventes]);
+  }, [load]);
 
   const clientsFiltres = useMemo(() => clients.filter((c) => {
     if (!search) return true;
@@ -104,7 +75,6 @@ export default function ClientsClient() {
   return (
     <div className="main-content">
       <div className="container">
-        <DemoDataBadge />
         {selectedClient && (
           <div
             style={{
@@ -243,7 +213,7 @@ export default function ClientsClient() {
                 {clientsFiltres.map((c) => (
                   <div
                     key={c.id}
-                    onClick={() => checkAndGate("fiche_client", () => setSelectedClient(c))}
+                    onClick={() => setSelectedClient(c)}
                     style={{
                       background: "var(--dark-card)",
                       borderRadius: "12px",

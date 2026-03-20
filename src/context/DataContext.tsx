@@ -181,7 +181,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const supabase = createClient();
+    let sessionHandled = false;
+
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (sessionHandled) return;
+      sessionHandled = true;
       if (session) {
         setIsDemoMode(false);
         loadAll();
@@ -194,8 +198,24 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         setLoading(false);
       }
     });
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
-      if (session && (event === "SIGNED_IN" || event === "TOKEN_REFRESHED")) {
+      if (event === "INITIAL_SESSION") {
+        if (!sessionHandled) {
+          sessionHandled = true;
+          if (session) {
+            setIsDemoMode(false);
+            loadAll();
+          } else {
+            setVentes([]);
+            setProduits([]);
+            setActiveGoal(null);
+            setIsDemoMode(false);
+            initialLoadDone.current = true;
+            setLoading(false);
+          }
+        }
+      } else if (session && (event === "SIGNED_IN" || event === "TOKEN_REFRESHED")) {
         setIsDemoMode(false);
         loadAll();
       } else if (event === "SIGNED_OUT") {
