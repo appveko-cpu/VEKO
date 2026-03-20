@@ -88,7 +88,7 @@ export default function ChargesSection({
   const [userId, setUserId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editCharge, setEditCharge] = useState<Charge | null>(null);
-  const [slotIndex, setSlotIndex] = useState<number>(0);
+  const [, setSlotIndex] = useState<number>(0);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [addFondsId, setAddFondsId] = useState<string | null>(null);
   const [addFondsVal, setAddFondsVal] = useState("");

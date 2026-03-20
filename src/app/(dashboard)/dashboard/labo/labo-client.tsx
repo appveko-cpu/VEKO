@@ -92,14 +92,6 @@ function fmt(n: number, d: string) {
   return n.toLocaleString("fr-FR") + " " + d;
 }
 
-function fmtRounded(n: number, d: string) {
-  const rounded = Math.round(n);
-  const exact = Math.round(n * 100) / 100;
-  if (rounded === exact) {
-    return rounded.toLocaleString("fr-FR") + " " + d;
-  }
-  return rounded.toLocaleString("fr-FR") + " " + d + " (" + exact.toLocaleString("fr-FR") + ")";
-}
 
 function genConseil(calc: CalcResult, devise: string): string {
   const parts: string[] = [];
@@ -685,7 +677,7 @@ function Report({ calc, nomProduit, onBack, devise, budgetPubJour, devisePub, jo
 
 export default function LaboClient() {
   const { deviseActuelle } = useDevise();
-  const { checkAndGate, canAccess } = useAccess();
+  const { checkAndGate } = useAccess();
 
   const [step, setStep] = useState(1);
   const [showReport, setShowReport] = useState(false);

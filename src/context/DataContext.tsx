@@ -181,17 +181,23 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const supabase = createClient();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
-      if (session && (event === "INITIAL_SESSION" || event === "SIGNED_IN" || event === "TOKEN_REFRESHED")) {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
         setIsDemoMode(false);
         loadAll();
-      } else if (!session && event === "INITIAL_SESSION") {
+      } else {
         setVentes([]);
         setProduits([]);
         setActiveGoal(null);
         setIsDemoMode(false);
         initialLoadDone.current = true;
         setLoading(false);
+      }
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
+      if (session && (event === "SIGNED_IN" || event === "TOKEN_REFRESHED")) {
+        setIsDemoMode(false);
+        loadAll();
       } else if (event === "SIGNED_OUT") {
         setVentes([]);
         setProduits([]);

@@ -33,9 +33,6 @@ function getLastNDays(n: number): string[] {
   return result;
 }
 
-const B_C = 2 * Math.PI * 68;
-const CA_C = 2 * Math.PI * 52;
-const V_C = 2 * Math.PI * 38;
 
 function computeNiceAxis(maxVal: number): { niceMax: number; ticks: number[] } {
   if (maxVal <= 0) return { niceMax: 5000, ticks: [0, 1000, 2000, 3000, 4000, 5000] };
