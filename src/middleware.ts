@@ -48,23 +48,22 @@ export async function middleware(request: NextRequest) {
       if (!isNaN(sessionStart) && Date.now() - sessionStart > MAX_SESSION_AGE_MS) {
         await supabase.auth.signOut({ scope: "local" });
         response.cookies.delete(SESSION_COOKIE);
-        const loginUrl = new URL("/login", request.url);
-        loginUrl.searchParams.set("reason", "session_expired");
+        const loginUrl = new URL("/dashboard", request.url);
         return NextResponse.redirect(loginUrl);
       }
     }
   }
 
-  if (!user && pathname.startsWith("/dashboard")) {
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
-
-  if (user && (pathname === "/login" || pathname === "/signup" || pathname === "/")) {
+  if (pathname === "/") {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  if (!user && pathname === "/") {
-    return NextResponse.redirect(new URL("/login", request.url));
+  if (!user && pathname.startsWith("/api/payment/initiate")) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (user && (pathname === "/login" || pathname === "/signup")) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   return response;

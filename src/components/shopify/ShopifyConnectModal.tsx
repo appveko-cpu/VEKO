@@ -2,18 +2,22 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useOnboarding } from "@/context/OnboardingContext";
+import { useAccess } from "@/context/AccessContext";
 
 type Step = "intro" | "url";
 
 export default function ShopifyConnectModal() {
   const { showShopifyModal, setShowShopifyModal, completeOnboarding } = useOnboarding();
+  const { canAccess, checkAndGate } = useAccess();
   const [step, setStep] = useState<Step>("intro");
   const [storeUrl, setStoreUrl] = useState("");
 
   function handleConnect() {
     const name = storeUrl.trim();
     if (!name) return;
-    window.location.href = `/api/auth/shopify/install?shop=${encodeURIComponent(name)}`;
+    checkAndGate("shopify", () => {
+      window.location.href = `/api/auth/shopify/install?shop=${encodeURIComponent(name)}`;
+    });
   }
 
   async function handleSkip() {

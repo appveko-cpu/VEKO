@@ -4,6 +4,8 @@ import { useDevise } from "@/context/DeviseContext";
 import { useData } from "@/context/DataContext";
 import { useToast } from "@/context/ToastContext";
 import TooltipGuide from "@/components/onboarding/TooltipGuide";
+import { useAccess } from "@/context/AccessContext";
+import DemoDataBadge from "@/components/access/DemoDataBadge";
 
 type Periode = "today" | "week" | "month" | "all";
 
@@ -59,6 +61,7 @@ export default function CommandesClient() {
   const { deviseActuelle } = useDevise();
   const { ventes, loading, deleteVente, marquerRetournee, repartirPubJour, updateShopifyOrder } = useData();
   const { showToast } = useToast();
+  const { checkAndGate } = useAccess();
 
   const [periode, setPeriode] = useState<Periode>("today");
   const [search, setSearch] = useState("");
@@ -175,7 +178,7 @@ export default function CommandesClient() {
   return (
     <div className="main-content">
       <div className="container">
-
+        <DemoDataBadge />
         {/* Barre recherche */}
         <div className="card" style={{ marginBottom: "12px", padding: "0" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "16px 20px" }}>
@@ -530,7 +533,10 @@ export default function CommandesClient() {
 
         {/* Rapport CEO */}
         <div style={{ background: "linear-gradient(135deg, #4f46e5, #8b5cf6)", borderRadius: "16px", padding: "20px", marginBottom: "12px", textAlign: "center" }}>
-          <button style={{ background: "white", border: "none", borderRadius: "12px", padding: "14px 32px", fontSize: "16px", fontWeight: 800, color: "#4f46e5", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
+          <button
+            style={{ background: "white", border: "none", borderRadius: "12px", padding: "14px 32px", fontSize: "16px", fontWeight: 800, color: "#4f46e5", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}
+            onClick={() => checkAndGate("rapport_ceo", () => { })}
+          >
             <i className="fas fa-file-pdf" style={{ color: "#4f46e5" }}></i>
             Generer mon Rapport CEO
           </button>

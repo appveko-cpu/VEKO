@@ -161,3 +161,10 @@ CREATE POLICY "charges_own" ON charges_mensuelles FOR ALL
 
 -- ── COLONNE NOM BOUTIQUE ──────────────────────────────
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS nom_boutique text;
+
+-- ── COLONNES ABONNEMENT / ACCÈS ───────────────────────
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS plan text DEFAULT 'free';
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS essais_restants integer DEFAULT 6;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS abonnement_auto boolean DEFAULT false;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS plan_expire_at timestamptz DEFAULT null;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS plan_start_at timestamptz DEFAULT null;

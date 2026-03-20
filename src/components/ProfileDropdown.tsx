@@ -476,7 +476,7 @@ export default function ProfileDropdown({
           onClick={async () => {
             await createClient().auth.signOut({ scope: "local" });
             document.cookie = "veko_session_start=; Max-Age=0; path=/";
-            window.location.href = "/login";
+            window.location.href = "/dashboard";
           }}
           style={{
             width: "100%",

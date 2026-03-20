@@ -4,6 +4,8 @@ import { useDevise } from "@/context/DeviseContext";
 import { useData } from "@/context/DataContext";
 import { useToast } from "@/context/ToastContext";
 import TooltipGuide from "@/components/onboarding/TooltipGuide";
+import { useAccess } from "@/context/AccessContext";
+import DemoDataBadge from "@/components/access/DemoDataBadge";
 
 function fmt(n: number, d: string) {
   return n.toLocaleString("fr-FR") + " " + d;
@@ -34,6 +36,7 @@ export default function ProduitsClient() {
   const { deviseActuelle } = useDevise();
   const { produits, ventes, loading, addProduit, updateProduit, deleteProduit } = useData();
   const { showToast } = useToast();
+  const { checkAndGate } = useAccess();
 
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -113,6 +116,7 @@ export default function ProduitsClient() {
   return (
     <div className="main-content">
       <div className="container">
+        <DemoDataBadge />
         <div className="card" style={{ padding: "24px", cursor: "default" }}>
 
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px", marginBottom: "8px" }}>
@@ -195,7 +199,7 @@ export default function ProduitsClient() {
                 )}
 
                 <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
-                  <button className="btn btn-primary" onClick={handleSave} style={{ flex: 1 }}>
+                  <button className="btn btn-primary" onClick={() => editId ? handleSave() : checkAndGate("ajouter_produit", handleSave)} style={{ flex: 1 }}>
                     <i className="fas fa-floppy-disk"></i>
                     {editId ? "Mettre à jour" : "Enregistrer"}
                   </button>

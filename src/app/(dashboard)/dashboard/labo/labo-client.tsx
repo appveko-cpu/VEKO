@@ -4,6 +4,8 @@ import { useDevise } from "@/context/DeviseContext";
 import { createClient } from "@/lib/supabase/client";
 import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import TooltipGuide from "@/components/onboarding/TooltipGuide";
+import { useAccess } from "@/context/AccessContext";
+import DemoDataBadge from "@/components/access/DemoDataBadge";
 
 type SourceType = "local" | "import" | "production";
 type SourceTypeNullable = SourceType | null;
@@ -683,6 +685,7 @@ function Report({ calc, nomProduit, onBack, devise, budgetPubJour, devisePub, jo
 
 export default function LaboClient() {
   const { deviseActuelle } = useDevise();
+  const { checkAndGate, canAccess } = useAccess();
 
   const [step, setStep] = useState(1);
   const [showReport, setShowReport] = useState(false);
@@ -972,6 +975,7 @@ export default function LaboClient() {
   return (
     <div className="main-content">
       <div className="container">
+        <DemoDataBadge />
         {/* ── HERO ── */}
         <div style={{
           background: "linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)",
@@ -1004,7 +1008,7 @@ export default function LaboClient() {
                 </div>
               </div>
             </div>
-            <button onClick={() => setShowHistory(true)} style={{ background: "white", border: "none", borderRadius: "12px", padding: "12px 18px", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", color: "#8b5cf6", fontSize: "13px", fontWeight: 800, boxShadow: "0 4px 15px rgba(0,0,0,0.2)" }}>
+            <button onClick={() => checkAndGate("labo_history", () => setShowHistory(true))} style={{ background: "white", border: "none", borderRadius: "12px", padding: "12px 18px", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", color: "#8b5cf6", fontSize: "13px", fontWeight: 800, boxShadow: "0 4px 15px rgba(0,0,0,0.2)" }}>
               <i className="fas fa-clock-rotate-left"></i>
               Historique
             </button>
@@ -1779,7 +1783,7 @@ export default function LaboClient() {
               <button
                 className="btn"
                 style={{ background: "linear-gradient(135deg,#8b5cf6,#ec4899)", color: "white" }}
-                onClick={() => setShowReport(true)} disabled={!calc.ok}
+                onClick={() => checkAndGate("generer_rapport", () => setShowReport(true))} disabled={!calc.ok}
               >
                 <i className="fas fa-chart-bar"></i> Voir le Rapport
               </button>

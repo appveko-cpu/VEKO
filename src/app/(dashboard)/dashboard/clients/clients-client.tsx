@@ -4,6 +4,9 @@ import { useDevise } from "@/context/DeviseContext";
 import { createClient } from "@/lib/supabase/client";
 import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import TooltipGuide from "@/components/onboarding/TooltipGuide";
+import { useAccess } from "@/context/AccessContext";
+import { useData } from "@/context/DataContext";
+import DemoDataBadge from "@/components/access/DemoDataBadge";
 
 type Client = {
   id: string;
@@ -20,9 +23,12 @@ function fmt(n: number, d: string) {
 
 export default function ClientsClient() {
   const { deviseActuelle } = useDevise();
+  const { checkAndGate, isDemoMode } = useAccess();
+  const { ventes } = useData();
   const [clients, setClients] = useState<Client[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -57,13 +63,37 @@ export default function ClientsClient() {
   }, []);
 
   useEffect(() => {
+    if (isDemoMode) {
+      const map = new Map<string, Client>();
+      ventes.forEach((v) => {
+        const key = `${v.nom_client ?? ""}|${v.tel ?? ""}`;
+        const existing = map.get(key);
+        if (existing) {
+          existing.nbCommandes += 1;
+          existing.totalCA += v.ca ?? 0;
+          existing.totalBenefice += v.benefice ?? 0;
+        } else {
+          map.set(key, {
+            id: key,
+            nom: v.nom_client || "Anonyme",
+            tel: v.tel || "",
+            nbCommandes: 1,
+            totalCA: v.ca ?? 0,
+            totalBenefice: v.benefice ?? 0,
+          });
+        }
+      });
+      setClients(Array.from(map.values()).sort((a, b) => b.totalCA - a.totalCA));
+      setLoading(false);
+      return;
+    }
     const supabase = createClient();
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
       if (session && (event === "INITIAL_SESSION" || event === "SIGNED_IN")) load();
       else if (!session && event === "INITIAL_SESSION") setLoading(false);
     });
     return () => subscription.unsubscribe();
-  }, [load]);
+  }, [load, isDemoMode, ventes]);
 
   const clientsFiltres = useMemo(() => clients.filter((c) => {
     if (!search) return true;
@@ -74,6 +104,69 @@ export default function ClientsClient() {
   return (
     <div className="main-content">
       <div className="container">
+        <DemoDataBadge />
+        {selectedClient && (
+          <div
+            style={{
+              position: "fixed", inset: 0, zIndex: 1000,
+              background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              padding: "20px",
+            }}
+            onClick={() => setSelectedClient(null)}
+          >
+            <div
+              style={{
+                background: "var(--dark-card)", borderRadius: "20px",
+                padding: "28px", maxWidth: "380px", width: "100%",
+                border: "1px solid var(--diamond-border)",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "20px" }}>
+                <div style={{
+                  width: "52px", height: "52px", borderRadius: "50%",
+                  background: "var(--gradient-primary)", display: "flex",
+                  alignItems: "center", justifyContent: "center",
+                  fontSize: "22px", fontWeight: 900, color: "white",
+                }}>
+                  {selectedClient.nom.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <div style={{ fontSize: "18px", fontWeight: 800, color: "var(--text-primary)" }}>{selectedClient.nom}</div>
+                  {selectedClient.tel && <div style={{ fontSize: "13px", color: "var(--text-muted)" }}>{selectedClient.tel}</div>}
+                </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px", marginBottom: "20px" }}>
+                {[
+                  { label: "Commandes", value: String(selectedClient.nbCommandes), icon: "fa-box" },
+                  { label: "CA total", value: fmt(selectedClient.totalCA, deviseActuelle), icon: "fa-coins" },
+                  { label: "Bénéfice", value: fmt(selectedClient.totalBenefice, deviseActuelle), icon: "fa-chart-line" },
+                ].map((s) => (
+                  <div key={s.label} style={{
+                    background: "var(--dark-elevated)", borderRadius: "12px",
+                    padding: "12px", textAlign: "center",
+                    border: "1px solid var(--diamond-border)",
+                  }}>
+                    <i className={`fas ${s.icon}`} style={{ color: "var(--accent-blue)", fontSize: "16px", marginBottom: "6px", display: "block" }}></i>
+                    <div style={{ fontSize: "13px", fontWeight: 800, color: "var(--text-primary)" }}>{s.value}</div>
+                    <div style={{ fontSize: "10px", color: "var(--text-muted)", marginTop: "2px" }}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={() => setSelectedClient(null)}
+                style={{
+                  width: "100%", padding: "12px", borderRadius: "11px",
+                  background: "var(--dark-elevated)", border: "1px solid var(--diamond-border)",
+                  color: "var(--text-muted)", cursor: "pointer", fontWeight: 700, fontSize: "14px",
+                }}
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        )}
         <div className="card" style={{ padding: "24px 24px 0 24px", cursor: "default" }}>
 
           <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
@@ -150,6 +243,7 @@ export default function ClientsClient() {
                 {clientsFiltres.map((c) => (
                   <div
                     key={c.id}
+                    onClick={() => checkAndGate("fiche_client", () => setSelectedClient(c))}
                     style={{
                       background: "var(--dark-card)",
                       borderRadius: "12px",
@@ -158,6 +252,8 @@ export default function ClientsClient() {
                       alignItems: "center",
                       justifyContent: "space-between",
                       border: "1px solid var(--diamond-border)",
+                      cursor: "pointer",
+                      transition: "border-color 0.2s",
                     }}
                   >
                     <div style={{ flex: 1 }}>

@@ -1,11 +1,13 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useDevise } from "@/context/DeviseContext";
 import { useData } from "@/context/DataContext";
 import { useToast } from "@/context/ToastContext";
 import { useFelicitation } from "@/context/FelicitationContext";
 import { useOnboarding } from "@/context/OnboardingContext";
+import { useAccess } from "@/context/AccessContext";
 import TooltipGuide from "@/components/onboarding/TooltipGuide";
+import DemoDataBadge from "@/components/access/DemoDataBadge";
 
 type CalcMode = "fournisseur" | "production";
 
@@ -40,9 +42,11 @@ export default function CalcClient() {
   const { showToast } = useToast();
   const { showFelicitation } = useFelicitation();
   const { userProfile } = useOnboarding();
+  const { checkAndGate } = useAccess();
 
   const [mode, setMode] = useState<CalcMode>("fournisseur");
   const [selectedProduct, setSelectedProduct] = useState("");
+  const [resultsUnlocked, setResultsUnlocked] = useState(false);
 
   const [prixAchat, setPrixAchat] = useState("");
   const [nbArticles, setNbArticles] = useState("");
@@ -153,6 +157,10 @@ export default function CalcClient() {
 
   const hasResults = prixRevient > 0 && np_ > 0 && pv_ > 0;
 
+  useEffect(() => {
+    setResultsUnlocked(false);
+  }, [prixRevient]);
+
   function resetForm2() {
     setNomClient("");
     setTelClient("");
@@ -199,6 +207,7 @@ export default function CalcClient() {
   return (
     <div className="main-content">
       <div className="container">
+        <DemoDataBadge />
 
         {/* ===== ETAPE 1 ===== */}
         <div className="card">
@@ -392,7 +401,7 @@ export default function CalcClient() {
             </Field>
           )}
 
-          {hasResults && (
+          {hasResults && resultsUnlocked && (
             <div style={{ background: "var(--dark-elevated)", borderRadius: "14px", padding: "16px 20px", marginBottom: "20px", border: "1px solid var(--diamond-border)" }}>
               <div className="result-row">
                 <span style={{ fontSize: "13px", color: "var(--text-muted)", fontWeight: 600 }}>Chiffre d&apos;Affaires</span>
@@ -439,7 +448,17 @@ export default function CalcClient() {
             </div>
           )}
 
-          {hasResults && (
+          {hasResults && !resultsUnlocked && (
+            <button
+              className="btn btn-primary"
+              onClick={() => checkAndGate("calculer", () => setResultsUnlocked(true))}
+              style={{ width: "100%", marginBottom: "20px" }}
+            >
+              <i className="fas fa-calculator"></i> Calculer
+            </button>
+          )}
+
+          {hasResults && resultsUnlocked && (
             <TooltipGuide
               id="calcul_enregistrer"
               title="Pret a enregistrer votre vente ?"
@@ -451,7 +470,7 @@ export default function CalcClient() {
             >
               <button
                 className="btn btn-primary"
-                onClick={handleSaveVente}
+                onClick={() => checkAndGate("enregistrer_vente", handleSaveVente)}
                 disabled={saving}
                 style={{ width: "100%" }}
               >

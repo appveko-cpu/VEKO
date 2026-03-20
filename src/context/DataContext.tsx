@@ -2,6 +2,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
+import { DEMO_VENTES, DEMO_PRODUITS, DEMO_GOAL } from "@/lib/demo-data";
 
 export type Vente = {
   id: string;
@@ -63,6 +64,7 @@ type DataContextType = {
   ventes: Vente[];
   produits: Produit[];
   loading: boolean;
+  isDemoMode: boolean;
   addVente: (v: Omit<Vente, "id" | "created_at" | "user_id">) => Promise<string | null>;
   deleteVente: (id: string) => Promise<void>;
   marquerRetournee: (id: string) => Promise<void>;
@@ -143,6 +145,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [ventes, setVentes] = useState<Vente[]>([]);
   const [produits, setProduits] = useState<Produit[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isDemoMode, setIsDemoMode] = useState(false);
   const [activeGoal, setActiveGoal] = useState<Goal | null>(null);
   const [showObjectifModal, setShowObjectifModal] = useState(false);
   const initialLoadDone = useRef(false);
@@ -181,13 +184,20 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const supabase = createClient();
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
       if (session && (event === "INITIAL_SESSION" || event === "SIGNED_IN" || event === "TOKEN_REFRESHED")) {
+        setIsDemoMode(false);
         loadAll();
       } else if (!session && event === "INITIAL_SESSION") {
+        setVentes(DEMO_VENTES);
+        setProduits(DEMO_PRODUITS);
+        setActiveGoal(DEMO_GOAL);
+        setIsDemoMode(true);
+        initialLoadDone.current = true;
         setLoading(false);
       } else if (event === "SIGNED_OUT") {
-        setVentes([]);
-        setProduits([]);
-        setActiveGoal(null);
+        setVentes(DEMO_VENTES);
+        setProduits(DEMO_PRODUITS);
+        setActiveGoal(DEMO_GOAL);
+        setIsDemoMode(true);
         setLoading(false);
       }
     });
@@ -469,7 +479,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <DataContext.Provider value={{
-      ventes, produits, loading,
+      ventes, produits, loading, isDemoMode,
       addVente, deleteVente, marquerRetournee, repartirPubJour,
       updateShopifyOrder, reload,
       addProduit, updateProduit, deleteProduit,
