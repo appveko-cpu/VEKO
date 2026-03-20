@@ -999,7 +999,7 @@ export default function LaboClient() {
                   title="Le Laboratoire des Prix"
                   message="Simulez votre produit en 3 étapes : vision, acquisition, charges. Obtenez le prix optimal et le seuil de rentabilité avant de vendre."
                   icon="fas fa-flask"
-                  position="bottom"
+                  position="card-center"
                 >
                   <div style={{ fontSize: "20px", fontWeight: 900, color: "white" }}>Laboratoire des Prix</div>
                 </TooltipGuide>

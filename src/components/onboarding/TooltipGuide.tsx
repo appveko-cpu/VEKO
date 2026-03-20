@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback, ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useOnboarding } from "@/context/OnboardingContext";
 
-type TooltipPosition = "top" | "bottom" | "left" | "right";
+type TooltipPosition = "top" | "bottom" | "left" | "right" | "card-center";
 
 type TooltipGuideProps = {
   id: string;
@@ -42,29 +42,41 @@ export default function TooltipGuide({
   const updatePosition = useCallback(() => {
     if (!targetRef.current) return;
     const rect = targetRef.current.getBoundingClientRect();
-    const tooltipWidth = 300;
-    const tooltipHeight = 150;
+    const tooltipWidth = 320;
+    const tooltipHeight = 170;
 
     let top = 0;
     let left = 0;
 
-    switch (position) {
-      case "top":
-        top = rect.top - tooltipHeight - 12;
-        left = rect.left + rect.width / 2 - tooltipWidth / 2;
-        break;
-      case "bottom":
-        top = rect.bottom + 12;
-        left = rect.left + rect.width / 2 - tooltipWidth / 2;
-        break;
-      case "left":
-        top = rect.top + rect.height / 2 - tooltipHeight / 2;
-        left = rect.left - tooltipWidth - 12;
-        break;
-      case "right":
-        top = rect.top + rect.height / 2 - tooltipHeight / 2;
-        left = rect.right + 12;
-        break;
+    if (position === "card-center") {
+      const parentCard = targetRef.current.closest(".card");
+      if (parentCard) {
+        const cardRect = parentCard.getBoundingClientRect();
+        top = cardRect.top + cardRect.height / 2 - tooltipHeight / 2;
+        left = cardRect.left + cardRect.width / 2 - tooltipWidth / 2;
+      } else {
+        top = window.innerHeight / 2 - tooltipHeight / 2;
+        left = window.innerWidth / 2 - tooltipWidth / 2;
+      }
+    } else {
+      switch (position) {
+        case "top":
+          top = rect.top - tooltipHeight - 12;
+          left = rect.left + rect.width / 2 - tooltipWidth / 2;
+          break;
+        case "bottom":
+          top = rect.bottom + 12;
+          left = rect.left + rect.width / 2 - tooltipWidth / 2;
+          break;
+        case "left":
+          top = rect.top + rect.height / 2 - tooltipHeight / 2;
+          left = rect.left - tooltipWidth - 12;
+          break;
+        case "right":
+          top = rect.top + rect.height / 2 - tooltipHeight / 2;
+          left = rect.right + 12;
+          break;
+      }
     }
 
     left = Math.max(16, Math.min(left, window.innerWidth - tooltipWidth - 16));
@@ -103,6 +115,8 @@ export default function TooltipGuide({
     setShowTooltip(false);
     onSecondaryClick?.();
   };
+
+  const isCardCenter = position === "card-center";
 
   return (
     <>
@@ -152,19 +166,19 @@ export default function TooltipGuide({
             </motion.div>
 
             <motion.div
-              initial={{ opacity: 0, y: position === "top" ? 10 : -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: position === "top" ? 10 : -10 }}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
               style={{
                 position: "fixed",
                 top: tooltipPosition.top,
                 left: tooltipPosition.left,
-                width: "300px",
+                width: "320px",
                 background: "var(--dark-card)",
                 borderRadius: "16px",
-                padding: "16px",
+                padding: "20px",
                 border: "1px solid var(--diamond-border)",
-                boxShadow: "0 12px 40px rgba(0,0,0,0.4)",
+                boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
                 zIndex: 10000,
               }}
             >
@@ -172,33 +186,33 @@ export default function TooltipGuide({
                 display: "flex",
                 alignItems: "flex-start",
                 gap: "12px",
-                marginBottom: "12px",
+                marginBottom: "16px",
               }}>
                 <div style={{
-                  width: "36px",
-                  height: "36px",
+                  width: "40px",
+                  height: "40px",
                   borderRadius: "10px",
-                  background: "linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(236, 72, 153, 0.2))",
+                  background: "linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(236, 72, 153, 0.2))",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   flexShrink: 0,
                 }}>
-                  <i className={icon} style={{ color: "#8b5cf6", fontSize: "16px" }}></i>
+                  <i className={icon} style={{ color: "#8b5cf6", fontSize: "18px" }}></i>
                 </div>
                 <div>
                   <div style={{
-                    fontSize: "14px",
-                    fontWeight: 700,
+                    fontSize: "15px",
+                    fontWeight: 800,
                     color: "var(--text-primary)",
-                    marginBottom: "4px",
+                    marginBottom: "6px",
                   }}>
                     {title}
                   </div>
                   <div style={{
                     fontSize: "13px",
                     color: "var(--text-muted)",
-                    lineHeight: 1.5,
+                    lineHeight: 1.6,
                   }}>
                     {message}
                   </div>
@@ -210,12 +224,12 @@ export default function TooltipGuide({
                   <button
                     onClick={handleSecondary}
                     style={{
-                      padding: "8px 14px",
+                      padding: "9px 16px",
                       borderRadius: "8px",
                       border: "1px solid var(--diamond-border)",
                       background: "transparent",
                       color: "var(--text-muted)",
-                      fontSize: "12px",
+                      fontSize: "13px",
                       fontWeight: 600,
                       cursor: "pointer",
                       fontFamily: "var(--font-inter), sans-serif",
@@ -227,13 +241,13 @@ export default function TooltipGuide({
                 <button
                   onClick={handleClose}
                   style={{
-                    padding: "8px 14px",
+                    padding: "9px 16px",
                     borderRadius: "8px",
                     border: "none",
                     background: "linear-gradient(135deg, #8b5cf6, #7c3aed)",
                     color: "white",
-                    fontSize: "12px",
-                    fontWeight: 600,
+                    fontSize: "13px",
+                    fontWeight: 700,
                     cursor: "pointer",
                     fontFamily: "var(--font-inter), sans-serif",
                   }}
@@ -242,24 +256,26 @@ export default function TooltipGuide({
                 </button>
               </div>
 
-              <div
-                style={{
-                  position: "absolute",
-                  width: "12px",
-                  height: "12px",
-                  background: "var(--dark-card)",
-                  border: "1px solid var(--diamond-border)",
-                  borderRight: "none",
-                  borderBottom: "none",
-                  transform: position === "bottom" ? "rotate(45deg)" : 
-                            position === "top" ? "rotate(-135deg)" :
-                            position === "left" ? "rotate(135deg)" : "rotate(-45deg)",
-                  ...(position === "bottom" && { top: "-7px", left: "50%", marginLeft: "-6px" }),
-                  ...(position === "top" && { bottom: "-7px", left: "50%", marginLeft: "-6px" }),
-                  ...(position === "left" && { right: "-7px", top: "50%", marginTop: "-6px" }),
-                  ...(position === "right" && { left: "-7px", top: "50%", marginTop: "-6px" }),
-                }}
-              />
+              {!isCardCenter && (
+                <div
+                  style={{
+                    position: "absolute",
+                    width: "12px",
+                    height: "12px",
+                    background: "var(--dark-card)",
+                    border: "1px solid var(--diamond-border)",
+                    borderRight: "none",
+                    borderBottom: "none",
+                    transform: position === "bottom" ? "rotate(45deg)" :
+                              position === "top" ? "rotate(-135deg)" :
+                              position === "left" ? "rotate(135deg)" : "rotate(-45deg)",
+                    ...(position === "bottom" && { top: "-7px", left: "50%", marginLeft: "-6px" }),
+                    ...(position === "top" && { bottom: "-7px", left: "50%", marginLeft: "-6px" }),
+                    ...(position === "left" && { right: "-7px", top: "50%", marginTop: "-6px" }),
+                    ...(position === "right" && { left: "-7px", top: "50%", marginTop: "-6px" }),
+                  }}
+                />
+              )}
             </motion.div>
           </>
         )}

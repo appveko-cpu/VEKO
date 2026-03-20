@@ -8,10 +8,11 @@ export default function DemoAuthBar() {
 
   return (
     <div style={{
-      background: "var(--dark-elevated)",
-      borderBottom: "1px solid var(--diamond-border)",
+      background: "linear-gradient(135deg, rgba(59,130,246,0.18), rgba(139,92,246,0.12))",
+      borderBottom: "1px solid rgba(99,102,241,0.35)",
+      borderTop: "3px solid #3b82f6",
       padding: "0 20px",
-      height: "52px",
+      height: "54px",
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
@@ -21,19 +22,20 @@ export default function DemoAuthBar() {
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
         <div style={{
-          width: "28px", height: "28px", borderRadius: "8px",
-          background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
+          width: "30px", height: "30px", borderRadius: "8px",
+          background: "rgba(239,68,68,0.15)",
+          border: "1px solid rgba(239,68,68,0.3)",
           display: "flex", alignItems: "center", justifyContent: "center",
           flexShrink: 0,
         }}>
-          <i className="fas fa-chart-line" style={{ color: "white", fontSize: "12px" }}></i>
+          <i className="fas fa-user-slash" style={{ color: "#ef4444", fontSize: "12px" }}></i>
         </div>
         <span style={{
           fontSize: "13px", color: "var(--text-secondary)",
           overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
         }}>
-          <strong style={{ color: "var(--text-primary)" }}>Mode démo</strong>
-          {" "}— Crée un compte pour utiliser tes vrais chiffres
+          <strong style={{ color: "var(--text-primary)" }}>Tu n'es pas connecté</strong>
+          {" "}— Crée un compte pour sauvegarder tes données
         </span>
       </div>
 
@@ -55,7 +57,7 @@ export default function DemoAuthBar() {
           Se connecter
         </Link>
         <Link
-          href="/signup"
+          href="/login?tab=signup"
           style={{
             padding: "7px 16px",
             borderRadius: "9px",

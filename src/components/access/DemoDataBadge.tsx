@@ -4,21 +4,39 @@ import { useData } from "@/context/DataContext";
 export default function DemoDataBadge() {
   const { isDemoMode } = useData();
   if (!isDemoMode) return null;
+
   return (
     <div style={{
-      background: "rgba(59,130,246,0.1)",
-      border: "1px solid rgba(59,130,246,0.3)",
-      borderRadius: "10px",
-      padding: "10px 16px",
-      marginBottom: "16px",
+      background: "linear-gradient(135deg, rgba(245,158,11,0.15), rgba(251,191,36,0.08))",
+      border: "1px solid rgba(245,158,11,0.4)",
+      borderRadius: "12px",
+      padding: "14px 18px",
+      marginBottom: "20px",
       display: "flex",
       alignItems: "center",
-      gap: "10px",
+      gap: "14px",
     }}>
-      <i className="fas fa-circle-info" style={{ color: "#3b82f6", fontSize: "15px", flexShrink: 0 }}></i>
-      <span style={{ fontSize: "12px", fontWeight: 600, color: "#3b82f6" }}>
-        DONNÉES FICTIVES — Entre tes propres chiffres pour voir ta réalité
-      </span>
+      <div style={{
+        width: "40px",
+        height: "40px",
+        borderRadius: "10px",
+        background: "rgba(245,158,11,0.2)",
+        border: "1px solid rgba(245,158,11,0.3)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+      }}>
+        <i className="fas fa-flask" style={{ color: "#f59e0b", fontSize: "18px" }}></i>
+      </div>
+      <div>
+        <div style={{ fontSize: "12px", fontWeight: 800, color: "#f59e0b", marginBottom: "3px", letterSpacing: "0.05em" }}>
+          DONNÉES DE DÉMONSTRATION
+        </div>
+        <div style={{ fontSize: "12px", color: "var(--text-secondary)", lineHeight: 1.5 }}>
+          Ces chiffres sont fictifs. Crée ton compte pour entrer tes vrais chiffres et voir ta réalité.
+        </div>
+      </div>
     </div>
   );
 }

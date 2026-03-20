@@ -261,7 +261,7 @@ export default function CalcClient() {
                 title="C'est ici que tout commence"
                 message="Entrez le vrai cout total sorti de votre poche : prix d'achat + transport + tout le reste"
                 icon="fas fa-hand-pointer"
-                position="bottom"
+                position="card-center"
               >
                 <Field label={`PRIX D'ACHAT UNITAIRE (${deviseActuelle})`}>
                   <input className="form-input" type="number" min="0" value={prixAchat} onChange={(e) => setPrixAchat(e.target.value)} onWheel={(e) => (e.target as HTMLInputElement).blur()} placeholder="2500" disabled={isProductSelected} style={isProductSelected ? { background: "var(--dark-elevated)" } : {}} />
@@ -349,7 +349,7 @@ export default function CalcClient() {
               title="Ce champ change tout votre benefice"
               message="Entrez votre budget pub total. VEKO le divise automatiquement sur vos ventes."
               icon="fas fa-lightbulb"
-              position="bottom"
+              position="card-center"
               secondaryAction="Je ne fais pas de pub"
               onSecondaryClick={() => setHasPub(false)}
               condition={hasPub}
@@ -464,7 +464,7 @@ export default function CalcClient() {
               title="Pret a enregistrer votre vente ?"
               message="Tout le dashboard se mettra a jour en temps reel."
               icon="fas fa-target"
-              position="top"
+              position="card-center"
               primaryAction="OK, j'ai compris"
               condition={ventes.length === 0}
             >

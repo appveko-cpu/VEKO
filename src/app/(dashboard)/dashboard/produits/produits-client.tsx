@@ -132,7 +132,7 @@ export default function ProduitsClient() {
               title="Votre catalogue accelere tout"
               message="Creez vos produits une fois. Ensuite dans Calcul, tout se remplit automatiquement."
               icon="fas fa-box"
-              position="left"
+              position="card-center"
               primaryAction="Creer mon premier produit"
               onPrimaryClick={openNew}
               condition={produits.length === 0}

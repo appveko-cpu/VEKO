@@ -1,5 +1,6 @@
 "use client";
-import { useState, CSSProperties } from "react";
+import { useState, useEffect, Suspense, CSSProperties } from "react";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 type Tab = "login" | "signup" | "reset";
@@ -15,7 +16,8 @@ function translateError(msg: string): string {
   return "Une erreur est survenue. Réessaie.";
 }
 
-export default function LoginPage() {
+function LoginContent() {
+  const searchParams = useSearchParams();
   const [tab, setTab] = useState<Tab>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,6 +27,11 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
+
+  useEffect(() => {
+    const t = searchParams.get("tab");
+    if (t === "signup" || t === "reset") setTab(t);
+  }, [searchParams]);
 
   function clearMessages() {
     setError("");
@@ -525,5 +532,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginContent />
+    </Suspense>
   );
 }
