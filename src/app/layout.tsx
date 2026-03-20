@@ -23,6 +23,18 @@ export const metadata: Metadata = {
   description:
     "Application de gestion financiere pour vendeurs africains. Calculez vos prix, suivez vos ventes, gerez vos clients.",
   manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icons/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/icons/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: [
+      { url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -50,8 +62,6 @@ export default function RootLayout({
           rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
         />
-        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
       </head>
       <body className={`${inter.variable}`}>{children}</body>
     </html>

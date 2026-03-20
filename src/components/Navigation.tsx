@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import ProfileDropdown from "./ProfileDropdown";
 import NotificationPanel from "./NotificationPanel";
@@ -54,12 +55,12 @@ export default function Navigation() {
     <>
       {/* DESKTOP SIDEBAR — visible via CSS !important on ≥1024px */}
       <div className="desktop-sidebar">
-        <div style={{ padding: "20px", textAlign: "center", borderBottom: "1px solid var(--diamond-border)", marginBottom: "12px" }}>
-          <div style={{ fontSize: "24px", fontWeight: 900, background: "var(--gradient-primary)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", letterSpacing: "3px" }}>
-            VEKO
-          </div>
-          <div style={{ fontSize: "9px", color: "var(--text-muted)", marginTop: "6px", lineHeight: 1.3 }}>
-            La vision de ce que<br />vous gagnez vraiment
+        <div style={{ padding: "16px 20px 12px", textAlign: "center", borderBottom: "1px solid var(--diamond-border)", marginBottom: "12px" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "4px" }}>
+            <Image src="/logo.png" alt="VEKO logo" width={32} height={32} style={{ borderRadius: "6px" }} priority />
+            <div style={{ fontSize: "24px", fontWeight: 900, background: "var(--gradient-primary)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", letterSpacing: "3px" }}>
+              VEKO
+            </div>
           </div>
         </div>
 
@@ -97,7 +98,8 @@ export default function Navigation() {
       {/* TOP BAR MOBILE */}
       <div className="top-bar top-bar-mobile">
         <div className="top-bar-content">
-          <div style={{ display: "flex", flexDirection: "column" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <Image src="/logo.png" alt="VEKO" width={26} height={26} style={{ borderRadius: "5px" }} />
             <div className="top-bar-logo">VEKO</div>
           </div>
 

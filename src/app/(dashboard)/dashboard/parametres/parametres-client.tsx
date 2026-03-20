@@ -145,6 +145,7 @@ const INDICATIFS = [
 ];
 
 export default function ParametresClient() {
+  const [nomBoutique, setNomBoutique] = useState("");
   const [username, setUsername] = useState("");
   const [prenom, setPrenom] = useState("");
   const [nom, setNom] = useState("");
@@ -201,6 +202,7 @@ export default function ParametresClient() {
           .eq("id", user.id)
           .single();
         if (profile) {
+          setNomBoutique(profile.nom_boutique ?? user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "");
           setUsername(profile.username ?? user.email?.split("@")[0] ?? "");
           setPrenom(profile.prenom ?? "");
           setNom(profile.nom ?? "");
@@ -212,9 +214,11 @@ export default function ParametresClient() {
           setShopifyRevenue(profile.shopify_revenue ?? 0);
           setShopifyLastSync(profile.shopify_last_sync ?? null);
         } else {
+          setNomBoutique(user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "");
           setUsername(user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "");
         }
       } catch {
+        setNomBoutique(user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "");
         setUsername(user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "");
       }
       setLoading(false);
@@ -274,6 +278,7 @@ export default function ParametresClient() {
     try {
       const { error } = await supabase.from("profiles").upsert({
         id: user.id,
+        nom_boutique: nomBoutique.trim(),
         username: username.trim(),
         prenom: prenom.trim(),
         nom: nom.trim(),
@@ -352,8 +357,13 @@ export default function ParametresClient() {
             </div>
             <div>
               <div style={{ fontSize: "20px", fontWeight: 800, color: "var(--text-primary)" }}>
-                {prenom || username} {nom}
+                {nomBoutique || username || "Ma boutique"}
               </div>
+              {(prenom || nom) && (
+                <div style={{ fontSize: "13px", color: "var(--text-secondary)", marginTop: "2px" }}>
+                  {prenom} {nom}
+                </div>
+              )}
               <div style={{ fontSize: "13px", color: "var(--text-muted)", marginTop: "4px" }}>
                 {email}
               </div>
@@ -387,6 +397,20 @@ export default function ParametresClient() {
           </div>
 
           <form onSubmit={handleSaveProfil}>
+            <div className="calc-field" style={{ marginBottom: "20px" }}>
+              <label className="calc-label" style={{ color: "var(--accent-green)", fontSize: "12px", fontWeight: 800, display: "flex", alignItems: "center", gap: "6px" }}>
+                <i className="fas fa-store"></i>
+                NOM DE LA BOUTIQUE
+              </label>
+              <input
+                className="form-input"
+                type="text"
+                value={nomBoutique}
+                onChange={(e) => setNomBoutique(e.target.value)}
+                placeholder="Nom de votre boutique"
+                style={{ fontSize: "16px", fontWeight: 700 }}
+              />
+            </div>
             <div className="calc-field">
               <label className="calc-label">NOM D&apos;UTILISATEUR</label>
               <input className="form-input" type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Votre pseudo" />
@@ -663,9 +687,14 @@ export default function ParametresClient() {
         </div>
 
         <div style={{ textAlign: "center", padding: "8px 0 24px", display: "flex", flexDirection: "column", gap: "8px" }}>
-          <button style={{ background: "none", border: "none", cursor: "pointer", fontSize: "12px", color: "var(--text-muted)", textDecoration: "underline" }}>
-            Politique de confidentialité
-          </button>
+          <div style={{ display: "flex", justifyContent: "center", gap: "16px" }}>
+            <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ fontSize: "12px", color: "var(--text-muted)", textDecoration: "underline" }}>
+              Politique de confidentialité
+            </a>
+            <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ fontSize: "12px", color: "var(--text-muted)", textDecoration: "underline" }}>
+              Conditions d&apos;utilisation
+            </a>
+          </div>
           <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
             © 2026 VEKO — Tous droits réservés
           </div>

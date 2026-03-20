@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 const MAX_SESSION_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+const SESSION_COOKIE = "veko_session_start";
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -32,12 +33,25 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (user) {
-    const lastSignIn = user.last_sign_in_at ? new Date(user.last_sign_in_at).getTime() : 0;
-    if (lastSignIn > 0 && Date.now() - lastSignIn > MAX_SESSION_AGE_MS) {
-      await supabase.auth.signOut();
-      const loginUrl = new URL("/login", request.url);
-      loginUrl.searchParams.set("reason", "session_expired");
-      return NextResponse.redirect(loginUrl);
+    const sessionCookie = request.cookies.get(SESSION_COOKIE);
+
+    if (!sessionCookie) {
+      response.cookies.set(SESSION_COOKIE, String(Date.now()), {
+        httpOnly: true,
+        sameSite: "lax",
+        maxAge: 35 * 24 * 60 * 60,
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+      });
+    } else {
+      const sessionStart = parseInt(sessionCookie.value, 10);
+      if (!isNaN(sessionStart) && Date.now() - sessionStart > MAX_SESSION_AGE_MS) {
+        await supabase.auth.signOut({ scope: "local" });
+        response.cookies.delete(SESSION_COOKIE);
+        const loginUrl = new URL("/login", request.url);
+        loginUrl.searchParams.set("reason", "session_expired");
+        return NextResponse.redirect(loginUrl);
+      }
     }
   }
 

@@ -158,3 +158,6 @@ ALTER TABLE charges_mensuelles ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "charges_own" ON charges_mensuelles FOR ALL
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
+
+-- ── COLONNE NOM BOUTIQUE ──────────────────────────────
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS nom_boutique text;

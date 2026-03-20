@@ -512,11 +512,15 @@ export default function LoginPage() {
           )}
 
           {/* Footer */}
-          <p style={{ fontSize: "10px", color: "rgba(255,255,255,0.25)", marginTop: "20px", lineHeight: 1.5 }}>
-            En vous connectant, vous acceptez notre{" "}
-            <span style={{ color: "#8b5cf6", textDecoration: "underline", cursor: "pointer" }}>
-              Politique de Confidentialité
-            </span>
+          <p style={{ fontSize: "10px", color: "rgba(255,255,255,0.25)", marginTop: "20px", lineHeight: 1.6, textAlign: "center" }}>
+            En vous connectant ou créant un compte, vous acceptez nos{" "}
+            <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: "#8b5cf6", textDecoration: "underline" }}>
+              Conditions d&apos;utilisation
+            </a>{" "}
+            et notre{" "}
+            <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: "#8b5cf6", textDecoration: "underline" }}>
+              Politique de confidentialité
+            </a>.
           </p>
         </div>
       </div>
