@@ -2,7 +2,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
-import { DEMO_VENTES, DEMO_PRODUITS, DEMO_GOAL } from "@/lib/demo-data";
 
 export type Vente = {
   id: string;
@@ -187,17 +186,17 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         setIsDemoMode(false);
         loadAll();
       } else if (!session && event === "INITIAL_SESSION") {
-        setVentes(DEMO_VENTES);
-        setProduits(DEMO_PRODUITS);
-        setActiveGoal(DEMO_GOAL);
-        setIsDemoMode(true);
+        setVentes([]);
+        setProduits([]);
+        setActiveGoal(null);
+        setIsDemoMode(false);
         initialLoadDone.current = true;
         setLoading(false);
       } else if (event === "SIGNED_OUT") {
-        setVentes(DEMO_VENTES);
-        setProduits(DEMO_PRODUITS);
-        setActiveGoal(DEMO_GOAL);
-        setIsDemoMode(true);
+        setVentes([]);
+        setProduits([]);
+        setActiveGoal(null);
+        setIsDemoMode(false);
         setLoading(false);
       }
     });

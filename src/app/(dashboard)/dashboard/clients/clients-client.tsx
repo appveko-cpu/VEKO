@@ -176,7 +176,7 @@ export default function ClientsClient() {
               title="Vos clients en un coup d'oeil"
               message="Ici vous retrouvez tous vos clients avec leur historique d'achats, leur CA total et leur bénéfice généré."
               icon="fas fa-users"
-              position="card-center"
+              position="bottom"
             >
               <span style={{ fontSize: "20px", fontWeight: 800, color: "var(--text-primary)" }}>
                 Mes Clients

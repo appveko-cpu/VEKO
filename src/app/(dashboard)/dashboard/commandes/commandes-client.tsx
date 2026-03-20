@@ -352,7 +352,7 @@ export default function CommandesClient() {
               title="Toutes vos ventes ici"
               message="Retrouvez l'historique complet de vos commandes. Filtrez par période, marquez des retours ou supprimez des ventes."
               icon="fas fa-receipt"
-              position="card-center"
+              position="bottom"
             >
               <span style={{ fontSize: "18px", fontWeight: 800, color: "var(--text-primary)" }}>Detail des Commandes</span>
             </TooltipGuide>

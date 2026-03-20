@@ -48,10 +48,15 @@ export async function middleware(request: NextRequest) {
       if (!isNaN(sessionStart) && Date.now() - sessionStart > MAX_SESSION_AGE_MS) {
         await supabase.auth.signOut({ scope: "local" });
         response.cookies.delete(SESSION_COOKIE);
-        const loginUrl = new URL("/dashboard", request.url);
+        const loginUrl = new URL("/login", request.url);
+        loginUrl.searchParams.set("reason", "session_expired");
         return NextResponse.redirect(loginUrl);
       }
     }
+  }
+
+  if (!user && pathname.startsWith("/dashboard")) {
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 
   if (pathname === "/") {

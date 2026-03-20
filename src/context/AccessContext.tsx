@@ -2,7 +2,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { User, AuthChangeEvent, Session, RealtimePostgresChangesPayload } from "@supabase/supabase-js";
-import { ACCESS_SYSTEM_ENABLED } from "@/lib/feature-flags";
 
 export type Plan = "free" | "solo" | "pro" | "fondateur" | null;
 
@@ -64,7 +63,6 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
   }, [essaisRestants]);
 
   const loadProfile = useCallback(async (userId: string) => {
-    if (!ACCESS_SYSTEM_ENABLED) return;
     try {
       const supabase = createClient();
       const { data } = await supabase
@@ -105,7 +103,6 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
   }, [loadProfile]);
 
   useEffect(() => {
-    if (!ACCESS_SYSTEM_ENABLED) return;
     const supabase = createClient();
     const channel = supabase
       .channel("access-profile-changes")
@@ -122,7 +119,6 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const decrementTrial = useCallback(async () => {
-    if (!ACCESS_SYSTEM_ENABLED) return;
     if (!userRef.current) return;
     const currentEssais = essaisRef.current;
     if (currentEssais <= 0) return;
@@ -136,7 +132,6 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
 
   const canAccess = useCallback((feature: string): boolean => {
     if (!isAuthenticated) return false;
-    if (!ACCESS_SYSTEM_ENABLED) return true;
     if (plan === "fondateur" || plan === "pro") return true;
     if (plan === "solo") return !SOLO_BLOCKED_FEATURES.includes(feature);
     return false;
@@ -145,10 +140,6 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
   const checkAndGate = useCallback((feature: string, onAllowed: () => void) => {
     if (!isAuthenticated) {
       setShowAuthModal(true);
-      return;
-    }
-    if (!ACCESS_SYSTEM_ENABLED) {
-      onAllowed();
       return;
     }
     if (plan === "fondateur" || plan === "pro") {

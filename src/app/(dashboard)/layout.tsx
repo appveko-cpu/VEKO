@@ -12,7 +12,6 @@ import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
 import LevelUpModal from "@/components/onboarding/LevelUpModal";
 import ShopifyConnectModal from "@/components/shopify/ShopifyConnectModal";
 import ObjectifModal from "@/components/ObjectifModal";
-import DemoAuthBar from "@/components/access/DemoAuthBar";
 import TrialBanner from "@/components/access/TrialBanner";
 import AuthPromptModal from "@/components/access/AuthPromptModal";
 import PricingModal from "@/components/access/PricingModal";
@@ -31,7 +30,6 @@ export default function DashboardLayout({
             <FelicitationProvider>
               <OnboardingProvider>
                 <UserLevelProvider>
-                  <DemoAuthBar />
                   <TrialBanner />
                   <Navigation />
                   {children}

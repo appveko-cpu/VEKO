@@ -42,11 +42,12 @@ export default function AuthPromptModal() {
         </h2>
         <p style={{ fontSize: "15px", color: "var(--text-secondary)", lineHeight: 1.6, margin: "0 0 28px" }}>
           Pour utiliser VEKO avec tes propres chiffres, crée ton compte gratuitement.
+          Tu as <strong style={{ color: "#10b981" }}>6 actions gratuites</strong> pour tester.
         </p>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           <Link
-            href="/login?tab=signup"
+            href="/signup"
             style={{
               display: "block", padding: "14px", borderRadius: "12px",
               background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
