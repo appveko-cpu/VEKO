@@ -62,6 +62,7 @@ export default function ProfileDropdown({
   const [theme, setTheme] = useState<Theme>("auto");
   const [dataEco, setDataEco] = useState(false);
   const [username, setUsername] = useState("Mon Compte");
+  const [email, setEmail] = useState("");
   const [editing, setEditing] = useState(false);
   const [nameInput, setNameInput] = useState("Mon Compte");
 
@@ -103,6 +104,7 @@ export default function ProfileDropdown({
           setNameInput(data.username);
           localStorage.setItem("veko-username", data.username);
         }
+        if (session.user.email) setEmail(session.user.email);
       } catch { }
     }
     syncProfile();
@@ -264,9 +266,14 @@ export default function ProfileDropdown({
                 </button>
               </div>
             )}
-            <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.65)", marginTop: "3px" }}>
+            <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.65)", marginTop: "3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               Entrepreneur
             </div>
+            {email && (
+              <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.45)", marginTop: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {email}
+              </div>
+            )}
             <div
               style={{
                 marginTop: "8px",
@@ -474,10 +481,11 @@ export default function ProfileDropdown({
         </button>
         <button
           onClick={async () => {
-            const supabase = createClient();
-            await supabase.auth.signOut();
-            document.cookie = "veko_session_start=; Max-Age=0; path=/";
-            window.location.href = "/login";
+            try {
+              await fetch("/api/auth/signout", { method: "POST", redirect: "manual" });
+            } finally {
+              window.location.replace("/login");
+            }
           }}
           style={{
             width: "100%",
