@@ -43,7 +43,6 @@ export default function CalcClient() {
 
   const [mode, setMode] = useState<CalcMode>("fournisseur");
   const [selectedProduct, setSelectedProduct] = useState("");
-  const [resultsUnlocked, setResultsUnlocked] = useState(false);
 
   const [prixAchat, setPrixAchat] = useState("");
   const [nbArticles, setNbArticles] = useState("");
@@ -153,10 +152,6 @@ export default function CalcClient() {
   }, [nbPieces, prixVente, prixRevient, hasPub, budgetPubConverti, fraisLivraisonClient, hasCommission, commissionParPiece]);
 
   const hasResults = prixRevient > 0 && np_ > 0 && pv_ > 0;
-
-  useEffect(() => {
-    setResultsUnlocked(false);
-  }, [prixRevient]);
 
   function resetForm2() {
     setNomClient("");
@@ -397,7 +392,7 @@ export default function CalcClient() {
             </Field>
           )}
 
-          {hasResults && resultsUnlocked && (
+          {hasResults && (
             <div style={{ background: "var(--dark-elevated)", borderRadius: "14px", padding: "16px 20px", marginBottom: "20px", border: "1px solid var(--diamond-border)" }}>
               <div className="result-row">
                 <span style={{ fontSize: "13px", color: "var(--text-muted)", fontWeight: 600 }}>Chiffre d&apos;Affaires</span>
@@ -444,17 +439,7 @@ export default function CalcClient() {
             </div>
           )}
 
-          {hasResults && !resultsUnlocked && (
-            <button
-              className="btn btn-primary"
-              onClick={() => setResultsUnlocked(true)}
-              style={{ width: "100%", marginBottom: "20px" }}
-            >
-              <i className="fas fa-calculator"></i> Calculer
-            </button>
-          )}
-
-          {hasResults && resultsUnlocked && (
+          {hasResults && (
             <TooltipGuide
               id="calcul_enregistrer"
               title="Pret a enregistrer votre vente ?"

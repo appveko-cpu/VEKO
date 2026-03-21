@@ -322,11 +322,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const addVente = useCallback(async (v: Omit<Vente, "id" | "created_at" | "user_id">): Promise<string | null> => {
     try {
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return null;
       const { data, error } = await supabase
         .from("ventes")
-        .insert({ ...v, user_id: user.id })
+        .insert({ ...v, user_id: session.user.id })
         .select()
         .single();
       if (error || !data) return null;
@@ -400,10 +400,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const addProduit = useCallback(async (p: Omit<Produit, "id" | "created_at" | "user_id">): Promise<boolean> => {
     try {
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return false;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return false;
       const insertData: Record<string, unknown> = {
-        user_id: user.id, nom: p.nom, prix_revient: p.prix_revient,
+        user_id: session.user.id, nom: p.nom, prix_revient: p.prix_revient,
         prix_vente: p.prix_vente, commission: p.commission,
       };
       if (p.frais_transport !== undefined) insertData.frais_transport = p.frais_transport;
@@ -453,17 +453,17 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const createGoal = useCallback(async (goal: Omit<Goal, "id" | "user_id" | "created_at">): Promise<boolean> => {
     try {
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return false;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return false;
 
-      const existing = await supabase.from("goals").select("id").eq("user_id", user.id);
+      const existing = await supabase.from("goals").select("id").eq("user_id", session.user.id);
       if (existing.data && existing.data.length > 0) {
-        await supabase.from("goals").delete().eq("user_id", user.id);
+        await supabase.from("goals").delete().eq("user_id", session.user.id);
       }
 
       const { data, error } = await supabase
         .from("goals")
-        .insert({ ...goal, user_id: user.id })
+        .insert({ ...goal, user_id: session.user.id })
         .select()
         .single();
 

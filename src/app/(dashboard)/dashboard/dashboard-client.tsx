@@ -443,7 +443,7 @@ export default function DashboardClient() {
 
   const kpis = useMemo(() => {
     if (activeVentes.length === 0) {
-      return { ca: 127500, benefice: 38200, marge: 30, nb: 12, isExample: true };
+      return { ca: 0, benefice: 0, marge: 0, nb: 0, isExample: false };
     }
     const ca = filtered.reduce((s, v) => s + v.ca, 0);
     const benefice = filtered.reduce((s, v) => s + v.benefice, 0);
@@ -453,7 +453,7 @@ export default function DashboardClient() {
 
   const totals = useMemo(() => {
     if (activeVentes.length === 0) {
-      return { ca: 425000, benefice: 127500, isExample: true };
+      return { ca: 0, benefice: 0, isExample: false };
     }
     const ca = activeVentes.reduce((s, v) => s + v.ca, 0);
     const benefice = activeVentes.reduce((s, v) => s + v.benefice, 0);
@@ -550,81 +550,11 @@ export default function DashboardClient() {
         {/* CHECKLIST DE DEMARRAGE */}
         <OnboardingChecklist />
 
-        {/* BANDEAU EXEMPLE SI PAS DE VENTES */}
-        {!loading && ventes.length === 0 && (
-          <div style={{
-            background: "linear-gradient(135deg, rgba(245,158,11,0.15), rgba(217,119,6,0.1))",
-            border: "1px solid rgba(245,158,11,0.3)",
-            borderRadius: "16px",
-            padding: "16px",
-            marginBottom: "16px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: "12px",
-            flexWrap: "wrap",
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <div style={{
-                width: "36px",
-                height: "36px",
-                borderRadius: "10px",
-                background: "rgba(245,158,11,0.2)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}>
-                <i className="fas fa-lightbulb" style={{ color: "#f59e0b", fontSize: "16px" }}></i>
-              </div>
-              <div>
-                <div style={{ fontSize: "13px", fontWeight: 700, color: "var(--text-primary)" }}>
-                  Ces chiffres sont des exemples
-                </div>
-                <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                  Enregistrez votre premiere vente pour voir vos vrais resultats.
-                </div>
-              </div>
-            </div>
-            <button
-              onClick={() => router.push("/dashboard/calcul")}
-              style={{
-                padding: "10px 16px",
-                borderRadius: "10px",
-                border: "none",
-                background: "linear-gradient(135deg, #f59e0b, #d97706)",
-                color: "white",
-                fontSize: "13px",
-                fontWeight: 700,
-                cursor: "pointer",
-                fontFamily: "var(--font-inter), sans-serif",
-                whiteSpace: "nowrap",
-              }}
-            >
-              <i className="fas fa-plus" style={{ marginRight: "8px" }}></i>
-              Enregistrer ma premiere vente
-            </button>
-          </div>
-        )}
-
         {/* 1. RECAPITULATIF */}
         <div className="card">
           <div className="section-title" style={{ marginBottom: "18px" }}>
             <i className="fas fa-chart-bar"></i>
             Récapitulatif (tout temps)
-            {totals.isExample && (
-              <span style={{
-                marginLeft: "auto",
-                fontSize: "10px",
-                fontWeight: 700,
-                color: "#f59e0b",
-                background: "rgba(245,158,11,0.15)",
-                padding: "4px 8px",
-                borderRadius: "6px",
-                textTransform: "uppercase",
-              }}>
-                Exemple
-              </span>
-            )}
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}>
             <div style={{ textAlign: "center", padding: "8px" }}>
