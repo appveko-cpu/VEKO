@@ -76,7 +76,7 @@ export default function ProduitsClient() {
   async function handleSave() {
     if (!nom.trim()) { showToast("Le nom du produit est requis.", "error"); return; }
     const pr = parseNum(prixRevient);
-    const ft = parseNum(fraisTransport);
+    const ft = fraisTransport.trim() !== "" ? parseNum(fraisTransport) : undefined;
     const pv = parseNum(prixVente);
     const cm = hasCommission ? parseNum(commission) : 0;
     const na = nbArticles.trim() !== "" ? (parseInt(nbArticles.replace(/\s/g, ""), 10) || undefined) : undefined;

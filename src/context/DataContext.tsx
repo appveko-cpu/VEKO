@@ -332,7 +332,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         .insert({ ...v, user_id: session.user.id })
         .select()
         .single();
-      if (error || !data) return null;
+      if (error || !data) {
+        console.error("[DataContext] addVente erreur Supabase:", error);
+        return null;
+      }
       const nv = mapVente(data as Record<string, unknown>);
       setVentes(prev => [nv, ...prev]);
       return nv.id;
