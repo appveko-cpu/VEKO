@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
+import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import TooltipGuide from "@/components/onboarding/TooltipGuide";
 
 const INDICATIFS = [
@@ -235,6 +236,13 @@ export default function ParametresClient() {
       }
     }
     loadUser();
+    const supabase = createClient();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
+      if (session && (event === "SIGNED_IN" || event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED")) {
+        loadUser();
+      }
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -284,7 +292,8 @@ export default function ParametresClient() {
   async function handleSaveProfil(e: React.FormEvent) {
     e.preventDefault();
     const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
     if (!user) return;
     try {
       const { error } = await supabase.from("profiles").upsert({
@@ -312,7 +321,8 @@ export default function ParametresClient() {
       return;
     }
     const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session: mdpSession } } = await supabase.auth.getSession();
+    const user = mdpSession?.user;
     if (!user?.email) return;
 
     const { error: signInErr } = await supabase.auth.signInWithPassword({

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
+import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 
 type Charge = {
   id: string;
@@ -110,11 +111,33 @@ export default function ChargesSection({
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    let handled = false;
+
+    supabase.auth.getSession().then(({ data }: { data: { session: Session | null } }) => {
+      const session = data.session;
+      if (handled) return;
+      handled = true;
       if (!session?.user) { setLoadingData(false); return; }
       setUserId(session.user.id);
       loadCharges(session.user.id).finally(() => setLoadingData(false));
     });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
+      if (event === "INITIAL_SESSION" && !handled) {
+        handled = true;
+        if (!session?.user) { setLoadingData(false); return; }
+        setUserId(session.user.id);
+        loadCharges(session.user.id).finally(() => setLoadingData(false));
+      } else if (session && (event === "SIGNED_IN" || event === "TOKEN_REFRESHED")) {
+        setUserId(session.user.id);
+        loadCharges(session.user.id);
+      } else if (event === "SIGNED_OUT") {
+        setCharges([]);
+        setLoadingData(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, [loadCharges]);
 
   useEffect(() => {

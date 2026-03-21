@@ -817,7 +817,7 @@ export default function LaboClient() {
         const { data: allRows } = await supabase
           .from("labo_history")
           .select("id")
-          .eq("user_id", user.id)
+          .eq("user_id", session.user.id)
           .order("created_at", { ascending: true });
         if (allRows && allRows.length > 20) {
           const toDelete = allRows.slice(0, allRows.length - 20);

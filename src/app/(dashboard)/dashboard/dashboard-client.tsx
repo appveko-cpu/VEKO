@@ -801,11 +801,13 @@ export default function DashboardClient() {
         )}
 
         {/* 4. CHARGES À COUVRIR */}
-        <ChargesSection
-          deviseActuelle={deviseActuelle}
-          convertir={convertir}
-          beneficeMoisCourant={kpis.benefice}
-        />
+        {!loading && (
+          <ChargesSection
+            deviseActuelle={deviseActuelle}
+            convertir={convertir}
+            beneficeMoisCourant={kpis.benefice}
+          />
+        )}
 
         {/* 5. VENTES RECENTES */}
         <div className="section-title" style={{ justifyContent: "space-between" }}>

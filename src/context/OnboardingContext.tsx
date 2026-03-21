@@ -60,7 +60,7 @@ export function useOnboarding() {
 }
 
 export function OnboardingProvider({ children }: { children: ReactNode }) {
-  const [currentStep, setCurrentStep] = useState<OnboardingStep>("welcome");
+  const [currentStep, setCurrentStep] = useState<OnboardingStep>("profile");
   const [userProfile, setUserProfile] = useState<UserProfile>(defaultProfile);
   const [isOnboardingDone, setIsOnboardingDone] = useState(false);
   const [showShopifyModal, setShowShopifyModal] = useState(false);

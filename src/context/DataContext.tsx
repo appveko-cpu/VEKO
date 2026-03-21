@@ -186,7 +186,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const supabase = createClient();
     let sessionHandled = false;
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data }: { data: { session: import("@supabase/supabase-js").Session | null } }) => {
+      const session = data.session;
       if (sessionHandled) return;
       sessionHandled = true;
       if (session) {
