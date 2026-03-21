@@ -85,7 +85,7 @@ export default function ChargesSection({
   const [userId, setUserId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editCharge, setEditCharge] = useState<Charge | null>(null);
-  const [slotIndex, setSlotIndex] = useState<number>(0);
+  const [, setSlotIndex] = useState<number>(0);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [addFondsId, setAddFondsId] = useState<string | null>(null);
   const [addFondsVal, setAddFondsVal] = useState("");
@@ -110,10 +110,10 @@ export default function ChargesSection({
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then((res: { data: { user: { id: string } | null } }) => {
-      if (!res.data.user) { setLoadingData(false); return; }
-      setUserId(res.data.user.id);
-      loadCharges(res.data.user.id).finally(() => setLoadingData(false));
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session?.user) { setLoadingData(false); return; }
+      setUserId(session.user.id);
+      loadCharges(session.user.id).finally(() => setLoadingData(false));
     });
   }, [loadCharges]);
 
