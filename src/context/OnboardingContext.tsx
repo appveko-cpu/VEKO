@@ -77,6 +77,11 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      await supabase.from("profiles").upsert(
+        { id: user.id },
+        { onConflict: "id", ignoreDuplicates: true }
+      );
+
       const { data, error } = await supabase
         .from("profiles")
         .select("prenom, full_name, business_type, pub_enabled, livraison_enabled, loyer_enabled, shopify_connected, shopify_store_url, onboarding_completed_at, checklist_hidden, first_sale_done, first_product_done, objective_set")
@@ -141,19 +146,16 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     const onVisible = () => {
       if (document.visibilityState === "visible") loadProfile();
     };
-    const onFocus = () => loadProfile();
     document.addEventListener("visibilitychange", onVisible);
-    window.addEventListener("focus", onFocus);
     return () => {
       document.removeEventListener("visibilitychange", onVisible);
-      window.removeEventListener("focus", onFocus);
     };
   }, [loadProfile]);
 
   useEffect(() => {
     const interval = setInterval(() => {
       if (document.visibilityState === "visible") loadProfile();
-    }, 30000);
+    }, 120000);
     return () => clearInterval(interval);
   }, [loadProfile]);
 
@@ -180,7 +182,8 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       if (updates.objectiveSet !== undefined) dbUpdates.objective_set = updates.objectiveSet;
 
       if (Object.keys(dbUpdates).length > 0) {
-        await supabase.from("profiles").update(dbUpdates).eq("id", user.id);
+        dbUpdates.id = user.id;
+        await supabase.from("profiles").upsert(dbUpdates, { onConflict: "id" });
       }
     } catch (e) {
       console.error("OnboardingContext updateProfile:", e);

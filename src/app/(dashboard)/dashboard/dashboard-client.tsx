@@ -1,10 +1,9 @@
 "use client";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useDevise } from "@/context/DeviseContext";
 import { useData } from "@/context/DataContext";
-import { createClient } from "@/lib/supabase/client";
-import type { User } from "@supabase/supabase-js";
+import { useOnboarding } from "@/context/OnboardingContext";
 import OnboardingChecklist from "@/components/onboarding/OnboardingChecklist";
 import ChargesSection from "@/components/ChargesSection";
 
@@ -396,22 +395,13 @@ export default function DashboardClient() {
   const router = useRouter();
   const { deviseActuelle, convertir } = useDevise();
   const { ventes, loading, activeGoal, goalStats, setShowObjectifModal, reload } = useData();
+  const { userProfile } = useOnboarding();
   const [period, setPeriod] = useState<Period>("mois");
   const [evoFilter, setEvoFilter] = useState<EvoFilter>("7");
   const [produitFilter, setProduitFilter] = useState<string>("");
-  const [shopifyConnected, setShopifyConnected] = useState(false);
   const [shopifySyncing, setShopifySyncing] = useState(false);
 
-  useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then((res: { data: { user: User | null } }) => {
-      if (!res.data.user) return;
-      supabase.from("profiles").select("shopify_connected").eq("id", res.data.user.id).single()
-        .then((profileRes: { data: { shopify_connected?: boolean } | null }) => {
-          if (profileRes.data?.shopify_connected) setShopifyConnected(true);
-        });
-    });
-  }, []);
+  const shopifyConnected = userProfile.shopifyConnected;
 
   const fmtConv = (n: number) => Math.round(convertir(n)).toLocaleString("fr-FR") + " " + deviseActuelle;
 

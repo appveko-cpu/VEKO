@@ -198,6 +198,11 @@ export default function ParametresClient() {
         setIsGoogle(providers.includes("google") && !providers.includes("email"));
 
         try {
+          await supabase.from("profiles").upsert(
+            { id: user.id, username: user.email?.split("@")[0] ?? "" },
+            { onConflict: "id", ignoreDuplicates: true }
+          );
+
           const { data: profile } = await supabase
             .from("profiles")
             .select("*")

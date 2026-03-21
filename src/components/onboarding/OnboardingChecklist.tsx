@@ -63,31 +63,34 @@ export default function OnboardingChecklist() {
   }, []);
 
   useEffect(() => {
+    if (dataLoading || onboardingLoading) return;
     if (produits.length > 0 && !userProfile.firstProductDone) {
       updateProfile({ firstProductDone: true });
       addXP(XP_REWARDS.firstProduct, "Premier produit cree");
       setRecentlyCompleted("product");
       setTimeout(() => setRecentlyCompleted(null), 2000);
     }
-  }, [produits.length, userProfile.firstProductDone, updateProfile, addXP]);
+  }, [produits.length, userProfile.firstProductDone, updateProfile, addXP, dataLoading, onboardingLoading]);
 
   useEffect(() => {
+    if (dataLoading || onboardingLoading) return;
     if (ventes.length > 0 && !userProfile.firstSaleDone) {
       updateProfile({ firstSaleDone: true });
       addXP(XP_REWARDS.firstSale, "Premiere vente enregistree");
       setRecentlyCompleted("sale");
       setTimeout(() => setRecentlyCompleted(null), 2000);
     }
-  }, [ventes.length, userProfile.firstSaleDone, updateProfile, addXP]);
+  }, [ventes.length, userProfile.firstSaleDone, updateProfile, addXP, dataLoading, onboardingLoading]);
 
   useEffect(() => {
+    if (dataLoading || onboardingLoading) return;
     if (activeGoal !== null && !userProfile.objectiveSet) {
       updateProfile({ objectiveSet: true });
       addXP(XP_REWARDS.setObjective, "Objectif defini");
       setRecentlyCompleted("objective");
       setTimeout(() => setRecentlyCompleted(null), 2000);
     }
-  }, [activeGoal, userProfile.objectiveSet, updateProfile, addXP]);
+  }, [activeGoal, userProfile.objectiveSet, updateProfile, addXP, dataLoading, onboardingLoading]);
 
   useEffect(() => {
     if (allCompleted && !showCelebration && !userProfile.checklistHidden) {

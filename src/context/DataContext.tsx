@@ -148,15 +148,18 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [activeGoal, setActiveGoal] = useState<Goal | null>(null);
   const [showObjectifModal, setShowObjectifModal] = useState(false);
   const initialLoadDone = useRef(false);
+  const userIdRef = useRef<string | null>(null);
 
-  const loadAll = useCallback(async () => {
+  const loadAll = useCallback(async (userId?: string) => {
+    const uid = userId ?? userIdRef.current;
+    if (!uid) return;
     if (!initialLoadDone.current) setLoading(true);
     try {
       const supabase = createClient();
       const [{ data: v }, { data: p }, { data: g }] = await Promise.all([
-        supabase.from("ventes").select("*").order("date", { ascending: false }),
-        supabase.from("produits").select("*").order("nom"),
-        supabase.from("goals").select("*").order("created_at", { ascending: false }).limit(1),
+        supabase.from("ventes").select("id,user_id,date,nom_client,tel,produit,nb_pieces,prix_vente,ca,depenses,benefice,marge,budget_pub_provisoire,retournee,created_at,source,shopify_order_id,shopify_status,shopify_note").eq("user_id", uid).order("date", { ascending: false }),
+        supabase.from("produits").select("*").eq("user_id", uid).order("nom"),
+        supabase.from("goals").select("*").eq("user_id", uid).order("created_at", { ascending: false }).limit(1),
       ]);
       if (v) setVentes(v.map(mapVente));
       if (p) setProduits(p.map(mapProduit));
@@ -187,8 +190,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       if (sessionHandled) return;
       sessionHandled = true;
       if (session) {
+        userIdRef.current = session.user.id;
         setIsDemoMode(false);
-        loadAll();
+        loadAll(session.user.id);
       } else {
         setVentes([]);
         setProduits([]);
@@ -204,8 +208,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         if (!sessionHandled) {
           sessionHandled = true;
           if (session) {
+            userIdRef.current = session.user.id;
             setIsDemoMode(false);
-            loadAll();
+            loadAll(session.user.id);
           } else {
             setVentes([]);
             setProduits([]);
@@ -216,9 +221,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           }
         }
       } else if (session && (event === "SIGNED_IN" || event === "TOKEN_REFRESHED")) {
+        userIdRef.current = session.user.id;
         setIsDemoMode(false);
-        loadAll();
+        loadAll(session.user.id);
       } else if (event === "SIGNED_OUT") {
+        userIdRef.current = null;
         setVentes([]);
         setProduits([]);
         setActiveGoal(null);
@@ -244,19 +251,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const onVisible = () => {
       if (document.visibilityState === "visible") loadAll();
     };
-    const onFocus = () => loadAll();
     document.addEventListener("visibilitychange", onVisible);
-    window.addEventListener("focus", onFocus);
     return () => {
       document.removeEventListener("visibilitychange", onVisible);
-      window.removeEventListener("focus", onFocus);
     };
   }, [loadAll]);
 
   useEffect(() => {
     const interval = setInterval(() => {
       if (document.visibilityState === "visible") loadAll();
-    }, 15000);
+    }, 60000);
     return () => clearInterval(interval);
   }, [loadAll]);
 
