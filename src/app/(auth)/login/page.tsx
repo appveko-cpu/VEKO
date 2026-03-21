@@ -1,12 +1,216 @@
+"use client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
+
 export default function LoginPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [showPass, setShowPass] = useState(false);
+
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      setError("Email ou mot de passe incorrect.");
+      setLoading(false);
+    } else {
+      router.replace("/dashboard");
+    }
+  }
+
+  async function handleGoogle() {
+    setGoogleLoading(true);
+    const supabase = createClient();
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="w-full max-w-md space-y-6 p-8">
-        <h1 className="text-2xl font-bold text-center">Connexion</h1>
-        <p className="text-center text-gray-500">
-          Page de connexion - a implementer
+    <div style={{
+      minHeight: "100vh",
+      background: "linear-gradient(135deg, #0F172A 0%, #1a1f35 50%, #0F172A 100%)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "20px",
+      fontFamily: "var(--font-inter), sans-serif",
+    }}>
+      <div style={{ width: "100%", maxWidth: "420px" }}>
+
+        {/* Logo */}
+        <div style={{ textAlign: "center", marginBottom: "32px" }}>
+          <div style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
+            <div style={{
+              width: "56px", height: "56px", borderRadius: "16px",
+              background: "linear-gradient(135deg, #10B981, #059669)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              boxShadow: "0 8px 32px rgba(16,185,129,0.35)",
+              fontSize: "26px", fontWeight: 900, color: "white", letterSpacing: "1px",
+            }}>V</div>
+            <div style={{
+              fontSize: "28px", fontWeight: 900,
+              background: "linear-gradient(135deg, #10B981, #059669)",
+              WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+              letterSpacing: "4px",
+            }}>VEKO</div>
+          </div>
+          <p style={{ color: "rgba(255,255,255,0.45)", fontSize: "13px", marginTop: "8px" }}>
+            La vision de ce que vous gagnez vraiment
+          </p>
+        </div>
+
+        {/* Card */}
+        <div style={{
+          background: "rgba(30,41,59,0.85)",
+          border: "1px solid rgba(255,255,255,0.1)",
+          borderRadius: "24px",
+          padding: "32px",
+          backdropFilter: "blur(20px)",
+          boxShadow: "0 24px 64px rgba(0,0,0,0.4)",
+        }}>
+          <h1 style={{ fontSize: "22px", fontWeight: 800, color: "#F8FAFC", marginBottom: "6px", textAlign: "center" }}>
+            Connexion
+          </h1>
+          <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.45)", textAlign: "center", marginBottom: "28px" }}>
+            Accédez à votre tableau de bord
+          </p>
+
+          {/* Google */}
+          <button
+            onClick={handleGoogle}
+            disabled={googleLoading}
+            style={{
+              width: "100%", padding: "13px", borderRadius: "12px",
+              background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)",
+              color: "#F8FAFC", fontSize: "14px", fontWeight: 700, cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: "10px",
+              marginBottom: "20px", transition: "all 0.2s",
+              opacity: googleLoading ? 0.6 : 1,
+            }}
+          >
+            {googleLoading ? (
+              <span style={{ width: "18px", height: "18px", border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "white", borderRadius: "50%", display: "inline-block", animation: "spin 0.7s linear infinite" }} />
+            ) : (
+              <svg width="18" height="18" viewBox="0 0 48 48">
+                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+              </svg>
+            )}
+            {googleLoading ? "Connexion..." : "Continuer avec Google"}
+          </button>
+
+          {/* Separator */}
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
+            <div style={{ flex: 1, height: "1px", background: "rgba(255,255,255,0.1)" }} />
+            <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.3)", fontWeight: 600 }}>OU</span>
+            <div style={{ flex: 1, height: "1px", background: "rgba(255,255,255,0.1)" }} />
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+            <div>
+              <label style={{ fontSize: "12px", fontWeight: 700, color: "rgba(255,255,255,0.6)", marginBottom: "6px", display: "block" }}>
+                Email
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="vous@exemple.com"
+                required
+                style={{
+                  width: "100%", padding: "12px 14px", borderRadius: "10px",
+                  background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)",
+                  color: "#F8FAFC", fontSize: "14px", outline: "none",
+                  boxSizing: "border-box", fontFamily: "inherit",
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ fontSize: "12px", fontWeight: 700, color: "rgba(255,255,255,0.6)", marginBottom: "6px", display: "block" }}>
+                Mot de passe
+              </label>
+              <div style={{ position: "relative" }}>
+                <input
+                  type={showPass ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  style={{
+                    width: "100%", padding: "12px 42px 12px 14px", borderRadius: "10px",
+                    background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)",
+                    color: "#F8FAFC", fontSize: "14px", outline: "none",
+                    boxSizing: "border-box", fontFamily: "inherit",
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPass(!showPass)}
+                  style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.4)", padding: "2px" }}
+                >
+                  <i className={`fas fa-eye${showPass ? "-slash" : ""}`} style={{ fontSize: "14px" }} />
+                </button>
+              </div>
+            </div>
+
+            {error && (
+              <div style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: "10px", padding: "10px 14px", fontSize: "13px", color: "#f87171" }}>
+                <i className="fas fa-exclamation-circle" style={{ marginRight: "8px" }} />{error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                width: "100%", padding: "13px", borderRadius: "12px",
+                background: "linear-gradient(135deg, #10B981, #059669)",
+                border: "none", color: "white", fontSize: "15px", fontWeight: 800,
+                cursor: loading ? "not-allowed" : "pointer",
+                opacity: loading ? 0.7 : 1,
+                boxShadow: "0 4px 20px rgba(16,185,129,0.35)",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
+                marginTop: "4px",
+              }}
+            >
+              {loading ? (
+                <span style={{ width: "18px", height: "18px", border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "white", borderRadius: "50%", display: "inline-block", animation: "spin 0.7s linear infinite" }} />
+              ) : (
+                <><i className="fas fa-arrow-right-to-bracket" /> Se connecter</>
+              )}
+            </button>
+          </form>
+        </div>
+
+        {/* Footer link */}
+        <p style={{ textAlign: "center", marginTop: "20px", fontSize: "13px", color: "rgba(255,255,255,0.4)" }}>
+          Pas encore de compte ?{" "}
+          <Link href="/signup" style={{ color: "#10B981", fontWeight: 700, textDecoration: "none" }}>
+            Créer un compte
+          </Link>
         </p>
       </div>
+
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        input::placeholder { color: rgba(255,255,255,0.25); }
+        input:focus { border-color: rgba(16,185,129,0.5) !important; box-shadow: 0 0 0 3px rgba(16,185,129,0.1); }
+      `}</style>
     </div>
   );
 }
