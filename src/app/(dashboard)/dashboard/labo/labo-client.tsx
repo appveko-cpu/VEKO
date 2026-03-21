@@ -728,12 +728,12 @@ export default function LaboClient() {
   const loadHistory = useCallback(async () => {
     try {
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
       const { data } = await supabase
         .from("labo_history")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", session.user.id)
         .order("created_at", { ascending: false })
         .limit(20);
       if (data) {
@@ -807,10 +807,10 @@ export default function LaboClient() {
     (async () => {
       try {
         const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) return;
         await supabase.from("labo_history").insert({
-          user_id: user.id,
+          user_id: session.user.id,
           nom_produit: nomProduit || "Produit sans nom",
           data: entry,
         });
