@@ -16,8 +16,8 @@ type ChecklistItem = {
 
 export default function OnboardingChecklist() {
   const router = useRouter();
-  const { userProfile, updateProfile, isOnboardingDone } = useOnboarding();
-  const { ventes, produits, activeGoal, setShowObjectifModal } = useData();
+  const { userProfile, updateProfile, isOnboardingDone, loading: onboardingLoading } = useOnboarding();
+  const { ventes, produits, activeGoal, setShowObjectifModal, loading: dataLoading } = useData();
   const { addXP } = useUserLevel();
   const [visible, setVisible] = useState(true);
   const [showCelebration, setShowCelebration] = useState(false);
@@ -101,6 +101,7 @@ export default function OnboardingChecklist() {
     }
   }, [allCompleted, showCelebration, userProfile.checklistHidden, triggerConfetti, addXP, updateProfile]);
 
+  if (onboardingLoading || dataLoading) return null;
   if (!isOnboardingDone) return null;
   if (userProfile.checklistHidden) return null;
   if (daysSinceOnboarding > 7 && !allCompleted) return null;

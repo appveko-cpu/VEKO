@@ -70,7 +70,8 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   const loadProfile = useCallback(async () => {
     try {
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) {
         setLoading(false);
         return;
@@ -110,9 +111,8 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       console.error("OnboardingContext loadProfile:", e);
       try {
-        const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user && localStorage.getItem(`veko_onboarding_done_${user.id}`)) {
+        const { data: { session } } = await createClient().auth.getSession();
+        if (session?.user && localStorage.getItem(`veko_onboarding_done_${session.user.id}`)) {
           setIsOnboardingDone(true);
         }
       } catch {
@@ -162,8 +162,9 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     
     try {
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+      const user = session.user;
 
       const dbUpdates: Record<string, unknown> = {};
       if (updates.businessType !== undefined) dbUpdates.business_type = updates.businessType;
@@ -190,8 +191,8 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     setIsOnboardingDone(true);
     await updateProfile({ onboardingCompletedAt: new Date().toISOString() });
     try {
-      const { data: { user } } = await createClient().auth.getUser();
-      if (user) localStorage.setItem(`veko_onboarding_done_${user.id}`, "1");
+      const { data: { session } } = await createClient().auth.getSession();
+      if (session?.user) localStorage.setItem(`veko_onboarding_done_${session.user.id}`, "1");
     } catch { /* silencieux */ }
   }, [updateProfile]);
 
@@ -199,8 +200,8 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     setIsOnboardingDone(true);
     await updateProfile({ onboardingCompletedAt: new Date().toISOString() });
     try {
-      const { data: { user } } = await createClient().auth.getUser();
-      if (user) localStorage.setItem(`veko_onboarding_done_${user.id}`, "1");
+      const { data: { session } } = await createClient().auth.getSession();
+      if (session?.user) localStorage.setItem(`veko_onboarding_done_${session.user.id}`, "1");
     } catch { /* silencieux */ }
   }, [updateProfile]);
 

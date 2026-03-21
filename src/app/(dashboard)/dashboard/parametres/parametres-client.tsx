@@ -187,41 +187,47 @@ export default function ParametresClient() {
 
   useEffect(() => {
     async function loadUser() {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setLoading(false); return; }
-
-      setEmail(user.email ?? "");
-      const providers = user.app_metadata?.providers ?? [];
-      setIsGoogle(providers.includes("google") && !providers.includes("email"));
-
       try {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", user.id)
-          .single();
-        if (profile) {
-          setNomBoutique(profile.nom_boutique ?? user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "");
-          setUsername(profile.username ?? user.email?.split("@")[0] ?? "");
-          setPrenom(profile.prenom ?? "");
-          setNom(profile.nom ?? "");
-          setTelephone(profile.telephone ?? "");
-          setIndicatif(profile.indicatif ?? "+237");
-          setShopifyConnected(profile.shopify_connected ?? false);
-          setShopifyStoreUrl(profile.shopify_store_url ?? null);
-          setShopifyOrdersCount(profile.shopify_orders_count ?? 0);
-          setShopifyRevenue(profile.shopify_revenue ?? 0);
-          setShopifyLastSync(profile.shopify_last_sync ?? null);
-        } else {
+        const supabase = createClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        const user = session?.user;
+        if (!user) return;
+
+        setEmail(user.email ?? "");
+        const providers = user.app_metadata?.providers ?? [];
+        setIsGoogle(providers.includes("google") && !providers.includes("email"));
+
+        try {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", user.id)
+            .single();
+          if (profile) {
+            setNomBoutique(profile.nom_boutique ?? user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "");
+            setUsername(profile.username ?? user.email?.split("@")[0] ?? "");
+            setPrenom(profile.prenom ?? "");
+            setNom(profile.nom ?? "");
+            setTelephone(profile.telephone ?? "");
+            setIndicatif(profile.indicatif ?? "+237");
+            setShopifyConnected(profile.shopify_connected ?? false);
+            setShopifyStoreUrl(profile.shopify_store_url ?? null);
+            setShopifyOrdersCount(profile.shopify_orders_count ?? 0);
+            setShopifyRevenue(profile.shopify_revenue ?? 0);
+            setShopifyLastSync(profile.shopify_last_sync ?? null);
+          } else {
+            setNomBoutique(user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "");
+            setUsername(user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "");
+          }
+        } catch {
           setNomBoutique(user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "");
           setUsername(user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "");
         }
       } catch {
-        setNomBoutique(user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "");
-        setUsername(user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "");
+        /* silencieux */
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
     loadUser();
   }, []);

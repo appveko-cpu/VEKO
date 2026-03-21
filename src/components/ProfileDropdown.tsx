@@ -91,12 +91,12 @@ export default function ProfileDropdown({
     async function syncProfile() {
       try {
         const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) return;
         const { data } = await supabase
           .from("profiles")
           .select("username")
-          .eq("id", user.id)
+          .eq("id", session.user.id)
           .single();
         if (data?.username) {
           setUsername(data.username);
@@ -474,7 +474,8 @@ export default function ProfileDropdown({
         </button>
         <button
           onClick={async () => {
-            await createClient().auth.signOut({ scope: "local" });
+            const supabase = createClient();
+            await supabase.auth.signOut();
             document.cookie = "veko_session_start=; Max-Age=0; path=/";
             window.location.href = "/login";
           }}
