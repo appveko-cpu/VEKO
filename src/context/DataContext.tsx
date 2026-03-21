@@ -156,11 +156,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     if (!initialLoadDone.current) setLoading(true);
     try {
       const supabase = createClient();
-      const [{ data: v }, { data: p }, { data: g }] = await Promise.all([
-        supabase.from("ventes").select("id,user_id,date,nom_client,tel,produit,nb_pieces,prix_vente,ca,depenses,benefice,marge,budget_pub_provisoire,retournee,created_at,source,shopify_order_id,shopify_status,shopify_note").eq("user_id", uid).order("date", { ascending: false }),
+      const [{ data: v, error: ve }, { data: p, error: pe }, { data: g, error: ge }] = await Promise.all([
+        supabase.from("ventes").select("*").eq("user_id", uid).order("date", { ascending: false }),
         supabase.from("produits").select("*").eq("user_id", uid).order("nom"),
         supabase.from("goals").select("*").eq("user_id", uid).order("created_at", { ascending: false }).limit(1),
       ]);
+      if (ve) console.error("[DataContext] ventes:", ve.message, ve.code);
+      if (pe) console.error("[DataContext] produits:", pe.message, pe.code);
+      if (ge) console.error("[DataContext] goals:", ge.message, ge.code);
       if (v) setVentes(v.map(mapVente));
       if (p) setProduits(p.map(mapProduit));
       if (g && g.length > 0) {
@@ -406,7 +409,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         user_id: session.user.id, nom: p.nom, prix_revient: p.prix_revient,
         prix_vente: p.prix_vente, commission: p.commission,
       };
-      if (p.frais_transport !== undefined) insertData.frais_transport = p.frais_transport;
+      if (p.frais_transport !== undefined && p.frais_transport !== null) {
+        insertData.frais_transport = p.frais_transport;
+      }
       if (p.nb_articles !== undefined) insertData.nb_articles = p.nb_articles;
       const { data, error } = await supabase.from("produits").insert(insertData).select().single();
       if (error) {
