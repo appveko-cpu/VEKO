@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useDevise } from "@/context/DeviseContext";
 import { useData } from "@/context/DataContext";
 import { useToast } from "@/context/ToastContext";
+import { usePlan } from "@/context/PlanContext";
 import TooltipGuide from "@/components/onboarding/TooltipGuide";
 
 type Periode = "today" | "week" | "month" | "all";
@@ -59,6 +60,7 @@ export default function CommandesClient() {
   const { deviseActuelle } = useDevise();
   const { ventes, loading, deleteVente, marquerRetournee, repartirPubJour, updateShopifyOrder } = useData();
   const { showToast } = useToast();
+  const { consumeEssai } = usePlan();
 
   const [periode, setPeriode] = useState<Periode>("today");
   const [search, setSearch] = useState("");
@@ -531,7 +533,7 @@ export default function CommandesClient() {
         <div style={{ background: "linear-gradient(135deg, #4f46e5, #8b5cf6)", borderRadius: "16px", padding: "20px", marginBottom: "12px", textAlign: "center" }}>
           <button
             style={{ background: "white", border: "none", borderRadius: "12px", padding: "14px 32px", fontSize: "16px", fontWeight: 800, color: "#4f46e5", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}
-            onClick={() => {}}
+            onClick={async () => { await consumeEssai(); }}
           >
             <i className="fas fa-file-pdf" style={{ color: "#4f46e5" }}></i>
             Generer mon Rapport CEO

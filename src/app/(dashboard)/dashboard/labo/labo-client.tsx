@@ -1,6 +1,7 @@
 "use client";
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useDevise } from "@/context/DeviseContext";
+import { usePlan } from "@/context/PlanContext";
 import { createClient } from "@/lib/supabase/client";
 import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import TooltipGuide from "@/components/onboarding/TooltipGuide";
@@ -675,6 +676,7 @@ function Report({ calc, nomProduit, onBack, devise, budgetPubJour, devisePub, jo
 
 export default function LaboClient() {
   const { deviseActuelle } = useDevise();
+  const { consumeEssai } = usePlan();
 
   const [step, setStep] = useState(1);
   const [showReport, setShowReport] = useState(false);
@@ -1771,7 +1773,7 @@ export default function LaboClient() {
               <button
                 className="btn"
                 style={{ background: "linear-gradient(135deg,#8b5cf6,#ec4899)", color: "white" }}
-                onClick={() => setShowReport(true)} disabled={!calc.ok}
+                onClick={async () => { const ok = await consumeEssai(); if (ok) setShowReport(true); }} disabled={!calc.ok}
               >
                 <i className="fas fa-chart-bar"></i> Voir le Rapport
               </button>

@@ -1,10 +1,11 @@
 "use client";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useDevise } from "@/context/DeviseContext";
 import { useData } from "@/context/DataContext";
 import { useToast } from "@/context/ToastContext";
 import { useFelicitation } from "@/context/FelicitationContext";
 import { useOnboarding } from "@/context/OnboardingContext";
+import { usePlan } from "@/context/PlanContext";
 import TooltipGuide from "@/components/onboarding/TooltipGuide";
 
 type CalcMode = "fournisseur" | "production";
@@ -40,6 +41,10 @@ export default function CalcClient() {
   const { showToast } = useToast();
   const { showFelicitation } = useFelicitation();
   const { userProfile } = useOnboarding();
+  const { consumeEssai } = usePlan();
+
+  const [resultVisible, setResultVisible] = useState(false);
+  const essaiConsumedForResult = useRef(false);
 
   const [mode, setMode] = useState<CalcMode>("fournisseur");
   const [selectedProduct, setSelectedProduct] = useState("");
@@ -153,6 +158,20 @@ export default function CalcClient() {
 
   const hasResults = prixRevient > 0 && np_ > 0 && pv_ > 0;
 
+  useEffect(() => {
+    if (hasResults && !essaiConsumedForResult.current) {
+      consumeEssai().then((allowed) => {
+        if (allowed) {
+          essaiConsumedForResult.current = true;
+          setResultVisible(true);
+        }
+      });
+    }
+    if (!hasResults) {
+      setResultVisible(false);
+    }
+  }, [hasResults, consumeEssai]);
+
   function resetForm2() {
     setNomClient("");
     setTelClient("");
@@ -164,11 +183,18 @@ export default function CalcClient() {
     setFraisLivraisonClient("0");
     setHasCommission(false);
     setCommissionParPiece("0");
+    setResultVisible(false);
+    essaiConsumedForResult.current = false;
   }
 
   async function handleSaveVente() {
     if (!hasResults) return;
     setSaving(true);
+    const ok = await consumeEssai();
+    if (!ok) {
+      setSaving(false);
+      return;
+    }
     const isFirstVente = ventes.filter(v => !v.retournee).length === 0;
     const id = await addVente({
       date: new Date().toISOString(),
@@ -392,7 +418,7 @@ export default function CalcClient() {
             </Field>
           )}
 
-          {hasResults && (
+          {hasResults && resultVisible && (
             <div style={{ background: "var(--dark-elevated)", borderRadius: "14px", padding: "16px 20px", marginBottom: "20px", border: "1px solid var(--diamond-border)" }}>
               <div className="result-row">
                 <span style={{ fontSize: "13px", color: "var(--text-muted)", fontWeight: 600 }}>Chiffre d&apos;Affaires</span>
@@ -439,7 +465,7 @@ export default function CalcClient() {
             </div>
           )}
 
-          {hasResults && (
+          {hasResults && resultVisible && (
             <TooltipGuide
               id="calcul_enregistrer"
               title="Pret a enregistrer votre vente ?"

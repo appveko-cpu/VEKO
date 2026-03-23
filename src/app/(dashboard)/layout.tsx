@@ -7,6 +7,7 @@ import { ToastProvider } from "@/context/ToastContext";
 import { FelicitationProvider } from "@/context/FelicitationContext";
 import { OnboardingProvider } from "@/context/OnboardingContext";
 import { UserLevelProvider } from "@/context/UserLevelContext";
+import { PlanProvider } from "@/context/PlanContext";
 
 const MorningBrief = dynamic(() => import("@/components/DailyNotifications").then(m => ({ default: m.MorningBrief })), { ssr: false });
 const EveningRecall = dynamic(() => import("@/components/DailyNotifications").then(m => ({ default: m.EveningRecall })), { ssr: false });
@@ -25,6 +26,7 @@ export default function DashboardLayout({
   return (
     <DeviseProvider>
       <DataProvider>
+        <PlanProvider>
         <ToastProvider>
           <FelicitationProvider>
             <OnboardingProvider>
@@ -43,6 +45,7 @@ export default function DashboardLayout({
             </OnboardingProvider>
           </FelicitationProvider>
         </ToastProvider>
+        </PlanProvider>
       </DataProvider>
     </DeviseProvider>
   );

@@ -3,6 +3,7 @@ import { useState, useMemo } from "react";
 import { useDevise } from "@/context/DeviseContext";
 import { useData } from "@/context/DataContext";
 import { useToast } from "@/context/ToastContext";
+import { usePlan } from "@/context/PlanContext";
 import TooltipGuide from "@/components/onboarding/TooltipGuide";
 
 function fmt(n: number, d: string) {
@@ -34,6 +35,7 @@ export default function ProduitsClient() {
   const { deviseActuelle } = useDevise();
   const { produits, ventes, loading, addProduit, updateProduit, deleteProduit } = useData();
   const { showToast } = useToast();
+  const { consumeEssai } = usePlan();
 
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -91,6 +93,8 @@ export default function ProduitsClient() {
         return;
       }
     } else {
+      const ok = await consumeEssai();
+      if (!ok) return;
       success = await addProduit({ nom: nom.trim(), prix_revient: pr, frais_transport: ft, prix_vente: pv, commission: cm, nb_articles: na });
       if (success) {
         showToast("Produit ajouté !", "success");
