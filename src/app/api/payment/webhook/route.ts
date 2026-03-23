@@ -9,8 +9,8 @@ interface PersonalInfo {
 }
 
 interface WebhookPayload {
+  event?: string;
   tokenPay?: string;
-  statut?: string;
   personal_Info?: PersonalInfo[];
 }
 
@@ -22,9 +22,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   }
 
-  const { tokenPay, statut, personal_Info } = body;
+  const { tokenPay, event, personal_Info } = body;
 
-  if (statut !== "paid") {
+  if (event !== "payin.session.completed") {
     return NextResponse.json({ received: true });
   }
 

@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
 
   const payload = {
     totalPrice,
-    article: [{ name: articleName, price: totalPrice }],
+    article: [{ [articleName]: totalPrice }],
     personal_Info: [
       {
         userId: user.id,
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
         autoRenew: autoRenew === true,
       },
     ],
-    numeroSend: "",
+    numeroSend: "0000000000",
     nomclient: user.email ?? "",
     return_url: `${appUrl}/payment/success`,
     webhook_url: `${appUrl}/api/payment/webhook`,
@@ -68,16 +68,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Payment provider unavailable" }, { status: 502 });
   }
 
-  let mfData: { payment_url?: string; token?: string; message?: string };
+  let mfData: { statut?: boolean; url?: string; payment_url?: string; token?: string; message?: string };
   try {
     mfData = await mfResponse.json();
   } catch {
     return NextResponse.json({ error: "Invalid response from payment provider" }, { status: 502 });
   }
 
-  const paymentUrl = mfData.payment_url ?? mfData.token;
+  if (mfData.statut === false) {
+    console.error("[payment/initiate] MF refused initiation:", mfData);
+    return NextResponse.json({ error: "Payment initiation refused" }, { status: 502 });
+  }
+
+  const paymentUrl = mfData.url ?? mfData.payment_url;
   if (!paymentUrl) {
-    console.error("[payment/initiate] No payment_url in MF response:", mfData);
+    console.error("[payment/initiate] No URL in MF response:", mfData);
     return NextResponse.json({ error: "No payment URL returned" }, { status: 502 });
   }
 
