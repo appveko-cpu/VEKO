@@ -84,6 +84,7 @@ export async function POST(request: NextRequest) {
       plan_expire_at: expireAt.toISOString(),
       abonnement_auto: autoRenew === true || autoRenew === "true",
       essais_restants: 999,
+      plan_period: period,
       last_payment_ref: tokenPay,
     })
     .eq("id", userId);

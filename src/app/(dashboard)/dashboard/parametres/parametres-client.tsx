@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import TooltipGuide from "@/components/onboarding/TooltipGuide";
+import { usePlan } from "@/context/PlanContext";
 
 const INDICATIFS = [
   { code: "+237", pays: "Cameroun", flag: "CM" },
@@ -145,7 +146,17 @@ const INDICATIFS = [
   { code: "+675", pays: "Papouasie N-G", flag: "PG" },
 ];
 
+function formatExpiry(dateStr: string | null): string {
+  if (!dateStr) return "—";
+  return new Date(dateStr).toLocaleDateString("fr-FR", {
+    day: "numeric", month: "long", year: "numeric",
+  });
+}
+
 export default function ParametresClient() {
+  const { plan: contextPlan, openPaywall } = usePlan();
+  const [planExpireAt, setPlanExpireAt] = useState<string | null>(null);
+  const [planAutoRenew, setPlanAutoRenew] = useState(false);
   const [nomBoutique, setNomBoutique] = useState("");
   const [username, setUsername] = useState("");
   const [prenom, setPrenom] = useState("");
@@ -221,6 +232,8 @@ export default function ParametresClient() {
             setShopifyOrdersCount(profile.shopify_orders_count ?? 0);
             setShopifyRevenue(profile.shopify_revenue ?? 0);
             setShopifyLastSync(profile.shopify_last_sync ?? null);
+            setPlanExpireAt(profile.plan_expire_at ?? null);
+            setPlanAutoRenew(profile.abonnement_auto ?? false);
           } else {
             setNomBoutique(user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "");
             setUsername(user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "");
@@ -400,6 +413,146 @@ export default function ParametresClient() {
             </div>
           </div>
         </div>
+
+        {/* ── Section Mon abonnement ── */}
+        {contextPlan === "fondateur" ? (
+          <div className="card" style={{ padding: 0, overflow: "hidden", cursor: "default" }}>
+            <div style={{
+              background: "linear-gradient(135deg, #b8860b 0%, #ffd700 50%, #b8860b 100%)",
+              padding: "24px",
+              position: "relative",
+            }}>
+              <div style={{
+                position: "absolute", top: "10px", right: "14px",
+                background: "rgba(0,0,0,0.25)", borderRadius: "6px",
+                padding: "2px 8px", fontSize: "10px", color: "white", fontWeight: 700,
+              }}>
+                ∞ À VIE
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <i className="fas fa-crown" style={{ fontSize: "24px", color: "white" }} />
+                <div>
+                  <div style={{ fontSize: "16px", fontWeight: 800, color: "white" }}>
+                    Bonjour {username || nomBoutique}, vous êtes membre fondateur !
+                  </div>
+                  <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.85)", marginTop: "4px" }}>
+                    Accès illimité à toutes les fonctionnalités VEKO, à vie.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : contextPlan === "free" || contextPlan === null ? (
+          <div className="card" style={{ padding: "24px", cursor: "default" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
+              <i className="fas fa-star" style={{ color: "#f59e0b", fontSize: "18px" }} />
+              <span style={{ fontSize: "17px", fontWeight: 800, color: "var(--text-primary)" }}>
+                Mon abonnement
+              </span>
+            </div>
+            <div style={{
+              background: "var(--dark-elevated)", borderRadius: "12px",
+              padding: "16px 20px", marginBottom: "16px",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
+                <i className="fas fa-lock-open" style={{ color: "var(--text-muted)", fontSize: "14px" }} />
+                <span style={{ fontSize: "14px", fontWeight: 700, color: "var(--text-primary)" }}>
+                  Version gratuite
+                </span>
+              </div>
+              <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                Découvrez VEKO avec vos essais d&apos;évaluation.
+              </div>
+            </div>
+            <button
+              onClick={openPaywall}
+              style={{
+                width: "100%", padding: "13px", borderRadius: "12px", border: "none",
+                background: "var(--gradient-secondary)", color: "white",
+                fontSize: "14px", fontWeight: 700, cursor: "pointer",
+                fontFamily: "var(--font-inter), sans-serif",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
+              }}
+            >
+              Choisir un plan
+              <i className="fas fa-arrow-right" />
+            </button>
+          </div>
+        ) : (contextPlan === "solo" || contextPlan === "pro") ? (
+          <div className="card" style={{ padding: "24px", cursor: "default" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
+              <i
+                className="fas fa-crown"
+                style={{
+                  color: contextPlan === "pro" ? "var(--accent-purple)" : "var(--accent-green)",
+                  fontSize: "18px",
+                }}
+              />
+              <span style={{ fontSize: "17px", fontWeight: 800, color: "var(--text-primary)" }}>
+                Mon abonnement
+              </span>
+            </div>
+            <div style={{
+              background: "var(--dark-elevated)", borderRadius: "12px",
+              padding: "16px 20px", marginBottom: "16px",
+              display: "flex", flexDirection: "column", gap: "14px",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <span style={{
+                  padding: "4px 14px", borderRadius: "20px",
+                  background: contextPlan === "pro" ? "var(--gradient-secondary)" : "var(--gradient-primary)",
+                  color: "white", fontSize: "13px", fontWeight: 800,
+                  textTransform: "uppercase" as const, letterSpacing: "0.5px",
+                }}>
+                  {contextPlan === "pro" ? "Pro" : "Solo"}
+                </span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <i
+                  className="fas fa-calendar-check"
+                  style={{
+                    fontSize: "14px",
+                    color: planExpireAt && new Date(planExpireAt) < new Date()
+                      ? "var(--accent-red)" : "var(--text-muted)",
+                  }}
+                />
+                {planExpireAt && new Date(planExpireAt) < new Date() ? (
+                  <span style={{ fontSize: "13px", color: "var(--accent-red)", fontWeight: 600 }}>
+                    Abonnement expiré — {formatExpiry(planExpireAt)}
+                  </span>
+                ) : (
+                  <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
+                    Valide jusqu&apos;au{" "}
+                    <strong style={{ color: "var(--text-primary)" }}>{formatExpiry(planExpireAt)}</strong>
+                  </span>
+                )}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <i
+                  className="fas fa-rotate"
+                  style={{
+                    fontSize: "14px",
+                    color: planAutoRenew ? "var(--accent-green)" : "var(--text-muted)",
+                  }}
+                />
+                <span style={{ fontSize: "13px", color: planAutoRenew ? "var(--accent-green)" : "var(--text-muted)" }}>
+                  {planAutoRenew ? "Renouvellement automatique activé" : "Renouvellement manuel"}
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={openPaywall}
+              style={{
+                width: "100%", padding: "11px", borderRadius: "12px",
+                border: "1px solid var(--diamond-border)", background: "transparent",
+                color: "var(--text-muted)", fontSize: "13px", fontWeight: 600,
+                cursor: "pointer", fontFamily: "var(--font-inter), sans-serif",
+              }}
+            >
+              Changer de plan
+            </button>
+          </div>
+        ) : null}
 
         <div className="card" style={{ padding: "24px", cursor: "default" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
