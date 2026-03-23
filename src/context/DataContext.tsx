@@ -149,6 +149,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [showObjectifModal, setShowObjectifModal] = useState(false);
   const initialLoadDone = useRef(false);
   const userIdRef = useRef<string | null>(null);
+  const lastVisibleReloadRef = useRef<number>(0);
+  const [realtimeUserId, setRealtimeUserId] = useState<string | null>(null);
 
   const loadAll = useCallback(async (userId?: string) => {
     const uid = userId ?? userIdRef.current;
@@ -195,6 +197,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       sessionHandled = true;
       if (session) {
         userIdRef.current = session.user.id;
+        setRealtimeUserId(session.user.id);
         setIsDemoMode(false);
         loadAll(session.user.id);
       } else {
@@ -213,6 +216,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           sessionHandled = true;
           if (session) {
             userIdRef.current = session.user.id;
+            setRealtimeUserId(session.user.id);
             setIsDemoMode(false);
             loadAll(session.user.id);
           } else {
@@ -226,10 +230,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         }
       } else if (session && (event === "SIGNED_IN" || event === "TOKEN_REFRESHED")) {
         userIdRef.current = session.user.id;
+        setRealtimeUserId(session.user.id);
         setIsDemoMode(false);
         loadAll(session.user.id);
       } else if (event === "SIGNED_OUT") {
         userIdRef.current = null;
+        setRealtimeUserId(null);
         setVentes([]);
         setProduits([]);
         setActiveGoal(null);
@@ -241,19 +247,24 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   }, [loadAll]);
 
   useEffect(() => {
+    if (!realtimeUserId) return;
     const supabase = createClient();
     const ch = supabase
       .channel("data-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "ventes" }, () => loadAll())
-      .on("postgres_changes", { event: "*", schema: "public", table: "produits" }, () => loadAll())
-      .on("postgres_changes", { event: "*", schema: "public", table: "goals" }, () => loadAll())
+      .on("postgres_changes", { event: "*", schema: "public", table: "ventes", filter: `user_id=eq.${realtimeUserId}` }, () => loadAll())
+      .on("postgres_changes", { event: "*", schema: "public", table: "produits", filter: `user_id=eq.${realtimeUserId}` }, () => loadAll())
+      .on("postgres_changes", { event: "*", schema: "public", table: "goals", filter: `user_id=eq.${realtimeUserId}` }, () => loadAll())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [loadAll]);
+  }, [loadAll, realtimeUserId]);
 
   useEffect(() => {
     const onVisible = () => {
-      if (document.visibilityState === "visible") loadAll();
+      if (document.visibilityState !== "visible") return;
+      const now = Date.now();
+      if (now - lastVisibleReloadRef.current < 30_000) return;
+      lastVisibleReloadRef.current = now;
+      loadAll();
     };
     document.addEventListener("visibilitychange", onVisible);
     return () => {

@@ -1,4 +1,16 @@
-import ParametresClient from "./parametres-client";
+"use client";
+import dynamic from "next/dynamic";
+
+const ParametresClient = dynamic(() => import("./parametres-client"), {
+  ssr: false,
+  loading: () => (
+    <div className="main-content">
+      <div className="container" style={{ paddingTop: "40px", textAlign: "center", color: "var(--text-muted)" }}>
+        Chargement…
+      </div>
+    </div>
+  ),
+});
 
 export default function ParametresPage() {
   return <ParametresClient />;

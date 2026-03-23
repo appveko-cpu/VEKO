@@ -58,10 +58,7 @@ export default function RootLayout({
             __html: `(function(){try{var t=localStorage.getItem('veko-theme-user-set')?localStorage.getItem('veko-theme')||'auto':'auto';if(t==='light'){document.documentElement.setAttribute('data-theme','light');}else if(t==='dark'){document.documentElement.removeAttribute('data-theme');}else{if(!window.matchMedia('(prefers-color-scheme: dark)').matches){document.documentElement.setAttribute('data-theme','light');}}}catch(e){}})();`,
           }}
         />
-        <link
-          rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
-        />
+
       </head>
       <body className={`${inter.variable}`}>{children}</body>
     </html>

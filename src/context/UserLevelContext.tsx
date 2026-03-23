@@ -123,19 +123,16 @@ export function UserLevelProvider({ children }: { children: ReactNode }) {
     const onVisible = () => {
       if (document.visibilityState === "visible") loadUserLevel();
     };
-    const onFocus = () => loadUserLevel();
     document.addEventListener("visibilitychange", onVisible);
-    window.addEventListener("focus", onFocus);
     return () => {
       document.removeEventListener("visibilitychange", onVisible);
-      window.removeEventListener("focus", onFocus);
     };
   }, [loadUserLevel]);
 
   useEffect(() => {
     const interval = setInterval(() => {
       if (document.visibilityState === "visible") loadUserLevel();
-    }, 30000);
+    }, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, [loadUserLevel]);
 
