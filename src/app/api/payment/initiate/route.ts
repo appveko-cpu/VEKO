@@ -1,89 +1,85 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { createClient } from "@/lib/supabase/server";
+
+const AMOUNTS: Record<string, Record<string, number>> = {
+  solo: { mensuel: 2500, annuel: 25000 },
+  pro: { mensuel: 4500, annuel: 45000 },
+};
+
+const LABELS: Record<string, Record<string, string>> = {
+  solo: { mensuel: "Abonnement VEKO Solo Mensuel", annuel: "Abonnement VEKO Solo Annuel" },
+  pro: { mensuel: "Abonnement VEKO Pro Mensuel", annuel: "Abonnement VEKO Pro Annuel" },
+};
 
 export async function POST(request: NextRequest) {
-  const cookieStore = await cookies();
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() { return cookieStore.getAll(); },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options)
-          );
-        },
-      },
-    }
-  );
-
+  const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
+
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await request.json();
-  const { plan, billing_period, auto_renew } = body as {
-    plan: "solo" | "pro";
-    billing_period: "monthly" | "yearly";
-    auto_renew: boolean;
-  };
-
-  if (!plan || !["solo", "pro"].includes(plan)) {
-    return NextResponse.json({ error: "Plan invalide" }, { status: 400 });
+  let body: { plan?: string; period?: string; autoRenew?: boolean };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   }
 
-  const PRICES: Record<string, Record<string, number>> = {
-    solo: { monthly: 2500, yearly: 25000 },
-    pro:  { monthly: 4500, yearly: 45000 },
-  };
+  const { plan, period, autoRenew } = body;
 
-  const montant = PRICES[plan][billing_period ?? "monthly"];
-  const apiUrl = process.env.MONEYFUSION_API_URL;
-
-  if (!apiUrl) {
-    return NextResponse.json({ error: "MONEYFUSION_API_URL non configurée" }, { status: 500 });
+  if (!plan || !period || !AMOUNTS[plan] || !AMOUNTS[plan][period]) {
+    return NextResponse.json({ error: "Invalid plan or period" }, { status: 400 });
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://veko-app.com";
+  const totalPrice = AMOUNTS[plan][period];
+  const articleName = LABELS[plan][period];
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://veko-app.com";
 
   const payload = {
-    totalPrice: montant,
-    article: [{ abonnement_veko: montant }],
+    totalPrice,
+    article: [{ name: articleName, price: totalPrice }],
     personal_Info: [
       {
         userId: user.id,
-        plan: plan,
-        billing_period: billing_period,
-        auto_renew: auto_renew,
+        plan,
+        period,
+        autoRenew: autoRenew === true,
       },
     ],
     numeroSend: "",
     nomclient: user.email ?? "",
-    return_url: `${baseUrl}/payment/success`,
-    webhook_url: `${baseUrl}/api/payment/webhook`,
+    return_url: `${appUrl}/payment/success`,
+    webhook_url: `${appUrl}/api/payment/webhook`,
   };
 
+  let mfResponse: Response;
   try {
-    const res = await fetch(apiUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok || !data.url) {
-      console.error("[payment/initiate] Money Fusion error:", data);
-      return NextResponse.json({ error: "Erreur Money Fusion", detail: data }, { status: 502 });
-    }
-
-    return NextResponse.json({ url: data.url });
+    mfResponse = await fetch(
+      "https://www.pay.moneyfusion.net/VEKO/9cc0f7a0cc72e8cb/pay/",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }
+    );
   } catch (err) {
-    console.error("[payment/initiate] fetch error:", err);
-    return NextResponse.json({ error: "Erreur réseau" }, { status: 502 });
+    console.error("[payment/initiate] Money Fusion fetch error:", err);
+    return NextResponse.json({ error: "Payment provider unavailable" }, { status: 502 });
   }
+
+  let mfData: { payment_url?: string; token?: string; message?: string };
+  try {
+    mfData = await mfResponse.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid response from payment provider" }, { status: 502 });
+  }
+
+  const paymentUrl = mfData.payment_url ?? mfData.token;
+  if (!paymentUrl) {
+    console.error("[payment/initiate] No payment_url in MF response:", mfData);
+    return NextResponse.json({ error: "No payment URL returned" }, { status: 502 });
+  }
+
+  return NextResponse.json({ payment_url: paymentUrl });
 }

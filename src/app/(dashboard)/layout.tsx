@@ -17,6 +17,7 @@ const OnboardingFlow = dynamic(() => import("@/components/onboarding/OnboardingF
 const LevelUpModal = dynamic(() => import("@/components/onboarding/LevelUpModal"), { ssr: false });
 const ShopifyConnectModal = dynamic(() => import("@/components/shopify/ShopifyConnectModal"), { ssr: false });
 const ObjectifModal = dynamic(() => import("@/components/ObjectifModal"), { ssr: false });
+const PaywallModal = dynamic(() => import("@/components/PaywallModal"), { ssr: false });
 
 export default function DashboardLayout({
   children,
@@ -41,6 +42,7 @@ export default function DashboardLayout({
                 <LevelUpModal />
                 <ShopifyConnectModal />
                 <ObjectifModal />
+                <PaywallModal />
               </UserLevelProvider>
             </OnboardingProvider>
           </FelicitationProvider>

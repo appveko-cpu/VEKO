@@ -8,6 +8,9 @@ type PlanContextType = {
   essaisRestants: number;
   loading: boolean;
   consumeEssai: () => Promise<boolean>;
+  showPaywall: boolean;
+  openPaywall: () => void;
+  closePaywall: () => void;
 };
 
 const PlanContext = createContext<PlanContextType | null>(null);
@@ -22,6 +25,7 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
   const [plan, setPlan] = useState<string | null>(null);
   const [essaisRestants, setEssaisRestants] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [showPaywall, setShowPaywall] = useState(false);
   const userIdRef = useRef<string | null>(null);
   const planRef = useRef<string | null>(null);
   const essaisRef = useRef(0);
@@ -103,7 +107,7 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
     }
     if (currentPlan === "free" || currentPlan === null) {
       if (essaisRef.current <= 0) {
-        alert("Essais épuisés");
+        setShowPaywall(true);
         return false;
       }
       const newVal = essaisRef.current - 1;
@@ -125,8 +129,11 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
     return true;
   }, []);
 
+  const openPaywall = useCallback(() => setShowPaywall(true), []);
+  const closePaywall = useCallback(() => setShowPaywall(false), []);
+
   return (
-    <PlanContext.Provider value={{ plan, essaisRestants, loading, consumeEssai }}>
+    <PlanContext.Provider value={{ plan, essaisRestants, loading, consumeEssai, showPaywall, openPaywall, closePaywall }}>
       {children}
     </PlanContext.Provider>
   );

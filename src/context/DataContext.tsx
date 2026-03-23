@@ -158,17 +158,24 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     if (!initialLoadDone.current) setLoading(true);
     try {
       const supabase = createClient();
-      const [{ data: v, error: ve }, { data: p, error: pe }, { data: g, error: ge }] = await Promise.all([
+      const [{ data: v, error: ve }, { data: p, error: pe }] = await Promise.all([
         supabase.from("ventes").select("*").eq("user_id", uid).order("date", { ascending: false }),
         supabase.from("produits").select("*").eq("user_id", uid).order("nom"),
-        supabase.from("goals").select("*").eq("user_id", uid).order("created_at", { ascending: false }).limit(1),
       ]);
       if (ve) console.error("[DataContext] ventes:", ve.message, ve.code);
       if (pe) console.error("[DataContext] produits:", pe.message, pe.code);
-      if (ge) console.error("[DataContext] goals:", ge.message, ge.code);
       if (v) setVentes(v.map(mapVente));
       if (p) setProduits(p.map(mapProduit));
-      if (g && g.length > 0) {
+    } catch (e) {
+      console.error("DataContext loadAll:", e);
+    }
+    try {
+      const supabase = createClient();
+      const { data: g, error: ge } = await supabase
+        .from("goals").select("*").eq("user_id", uid)
+        .order("created_at", { ascending: false }).limit(1);
+      if (ge) console.error("[DataContext] goals:", ge.message, ge.code);
+      else if (g && g.length > 0) {
         const goal = mapGoal(g[0] as Record<string, unknown>);
         const today = new Date();
         const endDate = new Date(goal.end_date);
@@ -180,8 +187,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       } else {
         setActiveGoal(null);
       }
-    } catch (e) {
-      console.error("DataContext loadAll:", e);
+    } catch {
+      setActiveGoal(null);
     }
     initialLoadDone.current = true;
     setLoading(false);
@@ -253,7 +260,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       .channel("data-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "ventes", filter: `user_id=eq.${realtimeUserId}` }, () => loadAll())
       .on("postgres_changes", { event: "*", schema: "public", table: "produits", filter: `user_id=eq.${realtimeUserId}` }, () => loadAll())
-      .on("postgres_changes", { event: "*", schema: "public", table: "goals", filter: `user_id=eq.${realtimeUserId}` }, () => loadAll())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [loadAll, realtimeUserId]);

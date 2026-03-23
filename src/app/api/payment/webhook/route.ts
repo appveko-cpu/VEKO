@@ -1,71 +1,97 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-const processed = new Set<string>();
+interface PersonalInfo {
+  userId?: string;
+  plan?: string;
+  period?: string;
+  autoRenew?: boolean | string;
+}
+
+interface WebhookPayload {
+  tokenPay?: string;
+  statut?: string;
+  personal_Info?: PersonalInfo[];
+}
 
 export async function POST(request: NextRequest) {
-  let body: Record<string, unknown>;
-
+  let body: WebhookPayload;
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   }
 
-  const event = body.event as string;
+  const { tokenPay, statut, personal_Info } = body;
 
-  if (event !== "payin.session.completed") {
-    return NextResponse.json({ ignored: true });
+  if (statut !== "paid") {
+    return NextResponse.json({ received: true });
   }
 
-  const tokenPay = body.tokenPay as string | undefined;
-  if (tokenPay) {
-    if (processed.has(tokenPay)) {
-      return NextResponse.json({ duplicate: true });
-    }
-    processed.add(tokenPay);
-    setTimeout(() => processed.delete(tokenPay!), 60 * 60 * 1000);
+  if (!tokenPay) {
+    return NextResponse.json({ error: "Missing tokenPay" }, { status: 400 });
   }
 
-  const personalInfoArr = body.personal_Info as Array<{
-    userId?: string;
-    plan?: string;
-    billing_period?: string;
-    auto_renew?: boolean;
-  }> | undefined;
+  const info = personal_Info?.[0];
+  const userId = info?.userId;
+  const plan = info?.plan;
+  const period = info?.period;
+  const autoRenew = info?.autoRenew;
 
-  const info = Array.isArray(personalInfoArr) ? personalInfoArr[0] : null;
-
-  if (!info?.userId || !info?.plan) {
-    console.error("[webhook] Missing userId or plan:", body);
-    return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+  if (!userId || !plan || !period) {
+    return NextResponse.json({ error: "Missing personal_Info fields" }, { status: 400 });
   }
 
-  const supabase = createClient(
+  if (!["solo", "pro"].includes(plan) || !["mensuel", "annuel"].includes(period)) {
+    return NextResponse.json({ error: "Invalid plan or period" }, { status: 400 });
+  }
+
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!serviceRoleKey) {
+    console.error("[payment/webhook] Missing SUPABASE_SERVICE_ROLE_KEY");
+    return NextResponse.json({ error: "Server config error" }, { status: 500 });
+  }
+
+  const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    serviceRoleKey,
+    { auth: { autoRefreshToken: false, persistSession: false } }
   );
 
-  const durationDays = info.billing_period === "yearly" ? 365 : 30;
-  const now = new Date();
-  const expiry = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000);
-
-  const { error } = await supabase
+  const { data: profile } = await supabaseAdmin
     .from("profiles")
-    .update({
-      plan: info.plan,
-      plan_start_at: now.toISOString(),
-      plan_expire_at: expiry.toISOString(),
-      abonnement_auto: info.auto_renew ?? false,
-      essais_restants: 999,
-    })
-    .eq("id", info.userId);
+    .select("last_payment_ref")
+    .eq("id", userId)
+    .single();
 
-  if (error) {
-    console.error("[webhook] Supabase update error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (profile?.last_payment_ref === tokenPay) {
+    return NextResponse.json({ received: true, duplicate: true });
   }
 
-  console.log(`[webhook] Plan ${info.plan} activé pour user ${info.userId}`);
+  const now = new Date();
+  const expireAt = new Date(now);
+  if (period === "annuel") {
+    expireAt.setDate(expireAt.getDate() + 365);
+  } else {
+    expireAt.setDate(expireAt.getDate() + 30);
+  }
+
+  const { error: updateError } = await supabaseAdmin
+    .from("profiles")
+    .update({
+      plan,
+      plan_start_at: now.toISOString(),
+      plan_expire_at: expireAt.toISOString(),
+      abonnement_auto: autoRenew === true || autoRenew === "true",
+      essais_restants: 999,
+      last_payment_ref: tokenPay,
+    })
+    .eq("id", userId);
+
+  if (updateError) {
+    console.error("[payment/webhook] Supabase update error:", updateError);
+    return NextResponse.json({ error: "DB update failed" }, { status: 500 });
+  }
+
   return NextResponse.json({ success: true });
 }
