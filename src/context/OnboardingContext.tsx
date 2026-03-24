@@ -77,6 +77,11 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      const localKey = `veko_onboarding_done_${user.id}`;
+      if (typeof window !== "undefined" && localStorage.getItem(localKey) === "1") {
+        setIsOnboardingDone(true);
+      }
+
       await supabase.from("profiles").upsert(
         { id: user.id },
         { onConflict: "id", ignoreDuplicates: true }
@@ -108,9 +113,17 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
           objectiveSet: data.objective_set ?? false,
         });
 
-        if (data.onboarding_completed_at) {
+        const localDone = typeof window !== "undefined" && localStorage.getItem(`veko_onboarding_done_${user.id}`) === "1";
+        if (data.onboarding_completed_at || localDone) {
           setIsOnboardingDone(true);
           localStorage.setItem(`veko_onboarding_done_${user.id}`, "1");
+          if (!data.onboarding_completed_at && localDone) {
+            createClient()
+              .from("profiles")
+              .update({ onboarding_completed_at: new Date().toISOString() })
+              .eq("id", user.id)
+              .then(() => {});
+          }
         }
       }
     } catch (e) {

@@ -154,7 +154,7 @@ function formatExpiry(dateStr: string | null): string {
 }
 
 export default function ParametresClient() {
-  const { plan: contextPlan, openPaywall } = usePlan();
+  const { plan: contextPlan, openPaywall, canAccess } = usePlan();
   const [planExpireAt, setPlanExpireAt] = useState<string | null>(null);
   const [planAutoRenew, setPlanAutoRenew] = useState(false);
   const [nomBoutique, setNomBoutique] = useState("");
@@ -743,120 +743,195 @@ export default function ParametresClient() {
 
         <div className="card" style={{ padding: "24px", cursor: "default" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
-            <i className="fas fa-bag-shopping" style={{ color: "#96bf48", fontSize: "18px" }}></i>
-            <span style={{ fontSize: "17px", fontWeight: 800, color: "var(--text-primary)" }}>
+            <i className="fas fa-bag-shopping" style={{ color: canAccess("shopify") ? "#96bf48" : "var(--text-muted)", fontSize: "18px" }}></i>
+            <span style={{ fontSize: "17px", fontWeight: 800, color: canAccess("shopify") ? "var(--text-primary)" : "var(--text-muted)" }}>
               Intégration Shopify
             </span>
+            {!canAccess("shopify") && (
+              <span style={{ padding: "2px 10px", borderRadius: "20px", background: "var(--gradient-secondary)", color: "white", fontSize: "11px", fontWeight: 700 }}>PRO</span>
+            )}
           </div>
 
-          {shopifyMsg && (
-            <div style={{
-              background: shopifyMsg.type === "success" ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)",
-              border: `1px solid ${shopifyMsg.type === "success" ? "rgba(16,185,129,0.35)" : "rgba(239,68,68,0.35)"}`,
-              borderRadius: "10px", padding: "10px 16px", marginBottom: "14px",
-              fontSize: "13px", fontWeight: 700,
-              color: shopifyMsg.type === "success" ? "var(--accent-green)" : "var(--accent-red)",
-              display: "flex", alignItems: "center", gap: "8px",
-            }}>
-              <i className={shopifyMsg.type === "success" ? "fas fa-check-circle" : "fas fa-exclamation-circle"}></i>
-              {shopifyMsg.text}
-            </div>
-          )}
+          {canAccess("shopify") ? (
+            <>
+              {shopifyMsg && (
+                <div style={{
+                  background: shopifyMsg.type === "success" ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)",
+                  border: `1px solid ${shopifyMsg.type === "success" ? "rgba(16,185,129,0.35)" : "rgba(239,68,68,0.35)"}`,
+                  borderRadius: "10px", padding: "10px 16px", marginBottom: "14px",
+                  fontSize: "13px", fontWeight: 700,
+                  color: shopifyMsg.type === "success" ? "var(--accent-green)" : "var(--accent-red)",
+                  display: "flex", alignItems: "center", gap: "8px",
+                }}>
+                  <i className={shopifyMsg.type === "success" ? "fas fa-check-circle" : "fas fa-exclamation-circle"}></i>
+                  {shopifyMsg.text}
+                </div>
+              )}
 
-          {shopifyConnected ? (
-            <div>
-              <div style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.3)", borderRadius: "12px", padding: "16px 20px", marginBottom: "14px" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                    <div style={{ width: "36px", height: "36px", borderRadius: "8px", background: "#96bf48", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      <i className="fas fa-check" style={{ color: "#fff", fontSize: "16px" }}></i>
+              {shopifyConnected ? (
+                <div>
+                  <div style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.3)", borderRadius: "12px", padding: "16px 20px", marginBottom: "14px" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                        <div style={{ width: "36px", height: "36px", borderRadius: "8px", background: "#96bf48", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <i className="fas fa-check" style={{ color: "#fff", fontSize: "16px" }}></i>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--accent-green)" }}>Boutique connectée</div>
+                          <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px" }}>{shopifyStoreUrl}</div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleShopifyDisconnect}
+                        className="btn"
+                        style={{ background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.3)", color: "var(--accent-red)", borderRadius: "8px", padding: "8px 14px", fontSize: "12px", fontWeight: 700, cursor: "pointer" }}
+                      >
+                        Déconnecter
+                      </button>
+                    </div>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                    <div style={{ background: "var(--dark-elevated)", borderRadius: "12px", padding: "14px" }}>
+                      <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "6px" }}>Commandes</div>
+                      <div style={{ fontSize: "24px", fontWeight: 800, color: "#10b981" }}>{shopifyOrdersCount}</div>
+                    </div>
+                    <div style={{ background: "var(--dark-elevated)", borderRadius: "12px", padding: "14px" }}>
+                      <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "6px" }}>CA Total</div>
+                      <div style={{ fontSize: "24px", fontWeight: 800, color: "#3b82f6" }}>{shopifyRevenue.toLocaleString("fr-FR", { maximumFractionDigits: 0 })}</div>
+                    </div>
+                  </div>
+                  {shopifyLastSync && (
+                    <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "10px", textAlign: "right" }}>
+                      Dernière sync : {new Date(shopifyLastSync).toLocaleString("fr-FR")}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <div style={{ background: "var(--dark-elevated)", borderRadius: "12px", padding: "16px 20px", display: "flex", alignItems: "center", gap: "14px", marginBottom: "16px" }}>
+                    <div style={{ width: "44px", height: "44px", borderRadius: "10px", background: "rgba(150,191,72,0.15)", border: "1px solid rgba(150,191,72,0.3)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <i className="fas fa-plug" style={{ color: "#96bf48", fontSize: "18px" }}></i>
                     </div>
                     <div>
-                      <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--accent-green)" }}>Boutique connectée</div>
-                      <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px" }}>{shopifyStoreUrl}</div>
+                      <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--text-primary)" }}>Non connecté</div>
+                      <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px", lineHeight: 1.5 }}>
+                        Connectez votre boutique Shopify pour synchroniser vos commandes automatiquement.
+                      </div>
                     </div>
                   </div>
-                  <button
-                    onClick={handleShopifyDisconnect}
-                    className="btn"
-                    style={{ background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.3)", color: "var(--accent-red)", borderRadius: "8px", padding: "8px 14px", fontSize: "12px", fontWeight: 700, cursor: "pointer" }}
-                  >
-                    Déconnecter
-                  </button>
-                </div>
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                <div style={{ background: "var(--dark-elevated)", borderRadius: "12px", padding: "14px" }}>
-                  <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "6px" }}>Commandes</div>
-                  <div style={{ fontSize: "24px", fontWeight: 800, color: "#10b981" }}>{shopifyOrdersCount}</div>
-                </div>
-                <div style={{ background: "var(--dark-elevated)", borderRadius: "12px", padding: "14px" }}>
-                  <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "6px" }}>CA Total</div>
-                  <div style={{ fontSize: "24px", fontWeight: 800, color: "#3b82f6" }}>{shopifyRevenue.toLocaleString("fr-FR", { maximumFractionDigits: 0 })}</div>
-                </div>
-              </div>
-              {shopifyLastSync && (
-                <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "10px", textAlign: "right" }}>
-                  Dernière sync : {new Date(shopifyLastSync).toLocaleString("fr-FR")}
-                </div>
-              )}
-            </div>
-          ) : (
-            <>
-              <div style={{ background: "var(--dark-elevated)", borderRadius: "12px", padding: "16px 20px", display: "flex", alignItems: "center", gap: "14px", marginBottom: "16px" }}>
-                <div style={{ width: "44px", height: "44px", borderRadius: "10px", background: "rgba(150,191,72,0.15)", border: "1px solid rgba(150,191,72,0.3)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <i className="fas fa-plug" style={{ color: "#96bf48", fontSize: "18px" }}></i>
-                </div>
-                <div>
-                  <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--text-primary)" }}>Non connecté</div>
-                  <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px", lineHeight: 1.5 }}>
-                    Connectez votre boutique Shopify pour synchroniser vos commandes automatiquement.
-                  </div>
-                </div>
-              </div>
-              {!showShopifyInput ? (
-                <button onClick={() => setShowShopifyInput(true)} className="btn btn-success" style={{ width: "100%" }}>
-                  <i className="fas fa-plug"></i>
-                  Connecter ma boutique Shopify
-                </button>
-              ) : (
-                <div>
-                  <div className="calc-field" style={{ marginBottom: "12px" }}>
-                    <label className="calc-label">NOM DE LA BOUTIQUE</label>
-                    <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                      <input
-                        className="form-input"
-                        type="text"
-                        value={shopifyStoreName}
-                        onChange={(e) => setShopifyStoreName(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && handleShopifyConnect()}
-                        placeholder="ma-boutique"
-                        autoFocus
-                      />
-                      <span style={{ fontSize: "13px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>.myshopify.com</span>
+                  {!showShopifyInput ? (
+                    <button onClick={() => setShowShopifyInput(true)} className="btn btn-success" style={{ width: "100%" }}>
+                      <i className="fas fa-plug"></i>
+                      Connecter ma boutique Shopify
+                    </button>
+                  ) : (
+                    <div>
+                      <div className="calc-field" style={{ marginBottom: "12px" }}>
+                        <label className="calc-label">NOM DE LA BOUTIQUE</label>
+                        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                          <input
+                            className="form-input"
+                            type="text"
+                            value={shopifyStoreName}
+                            onChange={(e) => setShopifyStoreName(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && handleShopifyConnect()}
+                            placeholder="ma-boutique"
+                            autoFocus
+                          />
+                          <span style={{ fontSize: "13px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>.myshopify.com</span>
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", gap: "10px" }}>
+                        <button
+                          onClick={() => { setShowShopifyInput(false); setShopifyStoreName(""); }}
+                          className="btn"
+                          style={{ flex: 1, background: "transparent", border: "1px solid var(--diamond-border)", color: "var(--text-muted)" }}
+                        >
+                          Annuler
+                        </button>
+                        <button
+                          onClick={handleShopifyConnect}
+                          disabled={!shopifyStoreName.trim()}
+                          className="btn btn-success"
+                          style={{ flex: 2, opacity: shopifyStoreName.trim() ? 1 : 0.5, cursor: shopifyStoreName.trim() ? "pointer" : "not-allowed" }}
+                        >
+                          <i className="fas fa-arrow-right"></i>
+                          Connecter
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                  <div style={{ display: "flex", gap: "10px" }}>
-                    <button
-                      onClick={() => { setShowShopifyInput(false); setShopifyStoreName(""); }}
-                      className="btn"
-                      style={{ flex: 1, background: "transparent", border: "1px solid var(--diamond-border)", color: "var(--text-muted)" }}
-                    >
-                      Annuler
-                    </button>
-                    <button
-                      onClick={handleShopifyConnect}
-                      disabled={!shopifyStoreName.trim()}
-                      className="btn btn-success"
-                      style={{ flex: 2, opacity: shopifyStoreName.trim() ? 1 : 0.5, cursor: shopifyStoreName.trim() ? "pointer" : "not-allowed" }}
-                    >
-                      <i className="fas fa-arrow-right"></i>
-                      Connecter
-                    </button>
-                  </div>
-                </div>
+                  )}
+                </>
               )}
             </>
+          ) : (
+            <div style={{ background: "var(--dark-elevated)", borderRadius: "12px", padding: "24px", display: "flex", flexDirection: "column", alignItems: "center", gap: "14px", textAlign: "center" }}>
+              <i className="fas fa-lock" style={{ fontSize: "32px", color: "var(--text-muted)" }}></i>
+              <p style={{ fontSize: "13px", color: "var(--text-muted)", lineHeight: 1.6, margin: 0 }}>
+                La connexion boutique Shopify est réservée au plan Pro.<br />
+                Synchronisez vos commandes automatiquement avec VEKO Pro.
+              </p>
+              <button onClick={openPaywall} style={{ padding: "11px 24px", borderRadius: "12px", border: "none", background: "var(--gradient-secondary)", color: "white", fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: "var(--font-inter), sans-serif" }}>
+                <i className="fas fa-arrow-up" style={{ marginRight: "8px" }}></i>
+                Passer au Pro
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="card" style={{ padding: "24px", cursor: "default" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
+            <i className="fas fa-headset" style={{ color: canAccess("support_prioritaire") ? "var(--accent-purple)" : "var(--text-muted)", fontSize: "18px" }}></i>
+            <span style={{ fontSize: "17px", fontWeight: 800, color: canAccess("support_prioritaire") ? "var(--text-primary)" : "var(--text-muted)" }}>
+              Support Prioritaire
+            </span>
+            {!canAccess("support_prioritaire") && (
+              <span style={{ padding: "2px 10px", borderRadius: "20px", background: "var(--gradient-secondary)", color: "white", fontSize: "11px", fontWeight: 700 }}>PRO</span>
+            )}
+          </div>
+
+          {canAccess("support_prioritaire") ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <p style={{ fontSize: "13px", color: "var(--text-secondary)", margin: 0, lineHeight: 1.6 }}>
+                En tant qu&apos;abonné Pro, tu as accès au support prioritaire directement via WhatsApp et Gmail.
+              </p>
+              <a
+                href="https://wa.me/242056994448"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ display: "flex", alignItems: "center", gap: "12px", background: "rgba(37,211,102,0.1)", border: "1px solid rgba(37,211,102,0.3)", borderRadius: "12px", padding: "14px 18px", textDecoration: "none" }}
+              >
+                <i className="fab fa-whatsapp" style={{ fontSize: "22px", color: "#25d366" }}></i>
+                <div>
+                  <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--text-primary)" }}>Support WhatsApp</div>
+                  <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>Réponse en moins de 24h</div>
+                </div>
+                <i className="fas fa-arrow-right" style={{ marginLeft: "auto", color: "var(--text-muted)", fontSize: "12px" }}></i>
+              </a>
+              <a
+                href="mailto:support@veko-app.com"
+                style={{ display: "flex", alignItems: "center", gap: "12px", background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.3)", borderRadius: "12px", padding: "14px 18px", textDecoration: "none" }}
+              >
+                <i className="fas fa-envelope" style={{ fontSize: "18px", color: "#3b82f6" }}></i>
+                <div>
+                  <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--text-primary)" }}>support@veko-app.com</div>
+                  <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>Support par email prioritaire</div>
+                </div>
+                <i className="fas fa-arrow-right" style={{ marginLeft: "auto", color: "var(--text-muted)", fontSize: "12px" }}></i>
+              </a>
+            </div>
+          ) : (
+            <div style={{ background: "var(--dark-elevated)", borderRadius: "12px", padding: "24px", display: "flex", flexDirection: "column", alignItems: "center", gap: "14px", textAlign: "center" }}>
+              <i className="fas fa-lock" style={{ fontSize: "32px", color: "var(--text-muted)" }}></i>
+              <p style={{ fontSize: "13px", color: "var(--text-muted)", lineHeight: 1.6, margin: 0 }}>
+                Le support prioritaire WhatsApp et Gmail est réservé au plan Pro.<br />
+                Obtenez des réponses rapides de l&apos;équipe VEKO.
+              </p>
+              <button onClick={openPaywall} style={{ padding: "11px 24px", borderRadius: "12px", border: "none", background: "var(--gradient-secondary)", color: "white", fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: "var(--font-inter), sans-serif" }}>
+                <i className="fas fa-arrow-up" style={{ marginRight: "8px" }}></i>
+                Passer au Pro
+              </button>
+            </div>
           )}
         </div>
 

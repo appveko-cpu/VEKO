@@ -17,23 +17,33 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      setError("Email ou mot de passe incorrect.");
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        setError("Email ou mot de passe incorrect.");
+      } else {
+        router.replace("/dashboard");
+      }
+    } catch {
+      setError("Une erreur est survenue. Réessayez.");
+    } finally {
       setLoading(false);
-    } else {
-      router.replace("/dashboard");
     }
   }
 
   async function handleGoogle() {
     setGoogleLoading(true);
-    const supabase = createClient();
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
-    });
+    try {
+      const supabase = createClient();
+      await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: `${window.location.origin}/auth/callback` },
+      });
+    } catch {
+      setError("Connexion Google échouée. Réessayez.");
+      setGoogleLoading(false);
+    }
   }
 
   return (

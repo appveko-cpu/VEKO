@@ -676,7 +676,7 @@ function Report({ calc, nomProduit, onBack, devise, budgetPubJour, devisePub, jo
 
 export default function LaboClient() {
   const { deviseActuelle } = useDevise();
-  const { consumeEssai } = usePlan();
+  const { consumeEssai, canAccess, openPaywall } = usePlan();
 
   const [step, setStep] = useState(1);
   const [showReport, setShowReport] = useState(false);
@@ -998,10 +998,18 @@ export default function LaboClient() {
                 </div>
               </div>
             </div>
-            <button onClick={() => setShowHistory(true)} style={{ background: "white", border: "none", borderRadius: "12px", padding: "12px 18px", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", color: "#8b5cf6", fontSize: "13px", fontWeight: 800, boxShadow: "0 4px 15px rgba(0,0,0,0.2)" }}>
-              <i className="fas fa-clock-rotate-left"></i>
-              Historique
-            </button>
+            {canAccess("historique_labo") ? (
+              <button onClick={() => setShowHistory(true)} style={{ background: "white", border: "none", borderRadius: "12px", padding: "12px 18px", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", color: "#8b5cf6", fontSize: "13px", fontWeight: 800, boxShadow: "0 4px 15px rgba(0,0,0,0.2)" }}>
+                <i className="fas fa-clock-rotate-left"></i>
+                Historique
+              </button>
+            ) : (
+              <button onClick={openPaywall} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "12px", padding: "12px 18px", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", color: "rgba(255,255,255,0.5)", fontSize: "13px", fontWeight: 800 }}>
+                <i className="fas fa-lock"></i>
+                Historique
+                <span style={{ padding: "2px 8px", borderRadius: "10px", background: "var(--gradient-secondary)", color: "white", fontSize: "10px", fontWeight: 700 }}>PRO</span>
+              </button>
+            )}
           </div>
         </div>
 

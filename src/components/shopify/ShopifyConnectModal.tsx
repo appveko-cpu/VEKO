@@ -1,14 +1,26 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useOnboarding } from "@/context/OnboardingContext";
+import { usePlan } from "@/context/PlanContext";
 
 type Step = "intro" | "url";
 
 export default function ShopifyConnectModal() {
   const { showShopifyModal, setShowShopifyModal, completeOnboarding } = useOnboarding();
+  const { plan } = usePlan();
   const [step, setStep] = useState<Step>("intro");
   const [storeUrl, setStoreUrl] = useState("");
+
+  useEffect(() => {
+    if (showShopifyModal && plan !== null && plan !== "pro" && plan !== "fondateur") {
+      setShowShopifyModal(false);
+      completeOnboarding();
+    }
+  }, [showShopifyModal, plan, setShowShopifyModal, completeOnboarding]);
+
+  if (!showShopifyModal) return null;
+  if (plan !== "pro" && plan !== "fondateur") return null;
 
   function handleConnect() {
     const name = storeUrl.trim();

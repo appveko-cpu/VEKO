@@ -8,10 +8,20 @@ type PlanContextType = {
   essaisRestants: number;
   loading: boolean;
   consumeEssai: () => Promise<boolean>;
+  canAccess: (feature: string) => boolean;
   showPaywall: boolean;
   openPaywall: () => void;
   closePaywall: () => void;
 };
+
+const SOLO_BLOCKED = new Set([
+  "shopify",
+  "charges_fixes",
+  "multi_boutiques",
+  "multi_gestionnaires",
+  "historique_labo",
+  "support_prioritaire",
+]);
 
 const PlanContext = createContext<PlanContextType | null>(null);
 
@@ -129,11 +139,19 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
     return true;
   }, []);
 
+  const canAccess = useCallback((feature: string): boolean => {
+    const p = planRef.current;
+    if (p === "fondateur" || p === "pro") return true;
+    if (p === "solo") return !SOLO_BLOCKED.has(feature);
+    if (p === "free" || p === null) return essaisRef.current > 0;
+    return false;
+  }, []);
+
   const openPaywall = useCallback(() => setShowPaywall(true), []);
   const closePaywall = useCallback(() => setShowPaywall(false), []);
 
   return (
-    <PlanContext.Provider value={{ plan, essaisRestants, loading, consumeEssai, showPaywall, openPaywall, closePaywall }}>
+    <PlanContext.Provider value={{ plan, essaisRestants, loading, consumeEssai, canAccess, showPaywall, openPaywall, closePaywall }}>
       {children}
     </PlanContext.Provider>
   );

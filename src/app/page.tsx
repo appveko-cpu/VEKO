@@ -43,7 +43,7 @@ export default function HomePage() {
             <Link href="/login" style={{ color: "rgba(255,255,255,0.7)", textDecoration: "none", fontSize: 14, fontWeight: 600, padding: "8px 16px" }}>
               Se connecter
             </Link>
-            <Link href="/login" style={{
+            <Link href="/signup" style={{
               background: "linear-gradient(135deg,#10B981,#059669)", color: "white", textDecoration: "none",
               fontSize: 14, fontWeight: 700, padding: "10px 20px", borderRadius: 10,
               boxShadow: "0 4px 16px rgba(16,185,129,0.35)",
@@ -77,7 +77,7 @@ export default function HomePage() {
               Calculez vos vrais bénéfices, suivez chaque vente et prenez les bonnes décisions — sans Excel, sans calcul à la main.
             </p>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 44 }}>
-              <Link href="/login" style={{
+              <Link href="/signup" style={{
                 background: "linear-gradient(135deg,#10B981,#059669)", color: "white", textDecoration: "none",
                 fontSize: 15, fontWeight: 700, padding: "14px 28px", borderRadius: 12,
                 boxShadow: "0 8px 24px rgba(16,185,129,0.4)",
@@ -85,11 +85,13 @@ export default function HomePage() {
                 Commencer gratuitement →
               </Link>
               <Link href="/login" style={{
-                background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.15)",
-                color: "rgba(255,255,255,0.85)", textDecoration: "none",
-                fontSize: 15, fontWeight: 600, padding: "14px 28px", borderRadius: 12,
+                color: "rgba(255,255,255,0.5)",
+                textDecoration: "none",
+                fontSize: 14,
+                fontWeight: 500,
+                padding: "14px 4px",
               }}>
-                Se connecter
+                Déjà un compte ? <span style={{ color: "#10b981", fontWeight: 700 }}>Se connecter</span>
               </Link>
             </div>
             <div style={{ display: "flex", gap: 32, flexWrap: "wrap" }}>
@@ -339,7 +341,7 @@ export default function HomePage() {
             Créez votre compte en 30 secondes. Aucune carte bancaire requise.
           </p>
           <div style={{ display: "flex", justifyContent: "center", gap: 12, flexWrap: "wrap" }}>
-            <Link href="/login" style={{
+            <Link href="/signup" style={{
               background: "white", color: "#059669", textDecoration: "none",
               fontSize: 15, fontWeight: 800, padding: "14px 32px", borderRadius: 12,
               boxShadow: "0 8px 24px rgba(0,0,0,0.2)",

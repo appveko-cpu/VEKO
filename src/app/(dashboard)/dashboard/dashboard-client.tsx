@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useDevise } from "@/context/DeviseContext";
 import { useData } from "@/context/DataContext";
 import { useOnboarding } from "@/context/OnboardingContext";
+import { usePlan } from "@/context/PlanContext";
 import OnboardingChecklist from "@/components/onboarding/OnboardingChecklist";
 import ChargesSection from "@/components/ChargesSection";
 
@@ -396,6 +397,7 @@ export default function DashboardClient() {
   const { deviseActuelle, convertir } = useDevise();
   const { ventes, loading, activeGoal, goalStats, setShowObjectifModal, reload } = useData();
   const { userProfile } = useOnboarding();
+  const { canAccess, openPaywall } = usePlan();
   const [period, setPeriod] = useState<Period>("mois");
   const [evoFilter, setEvoFilter] = useState<EvoFilter>("7");
   const [produitFilter, setProduitFilter] = useState<string>("");
@@ -732,11 +734,29 @@ export default function DashboardClient() {
 
         {/* 4. CHARGES À COUVRIR */}
         {!loading && (
-          <ChargesSection
-            deviseActuelle={deviseActuelle}
-            convertir={convertir}
-            beneficeMoisCourant={kpis.benefice}
-          />
+          canAccess("charges_fixes") ? (
+            <ChargesSection
+              deviseActuelle={deviseActuelle}
+              convertir={convertir}
+              beneficeMoisCourant={kpis.benefice}
+            />
+          ) : (
+            <div className="card" style={{ padding: "20px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px" }}>
+                <span style={{ fontSize: "15px", fontWeight: 800, color: "var(--text-muted)" }}>
+                  Mes charges à couvrir ce mois
+                </span>
+                <span style={{ padding: "2px 10px", borderRadius: "20px", background: "var(--gradient-secondary)", color: "white", fontSize: "11px", fontWeight: 700 }}>PRO</span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", padding: "16px 0", textAlign: "center" }}>
+                <i className="fas fa-lock" style={{ fontSize: "24px", color: "var(--text-muted)" }}></i>
+                <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: 0, lineHeight: 1.5 }}>
+                  La gestion des charges fixes est disponible avec le plan Pro.
+                </p>
+                <button onClick={openPaywall} style={{ padding: "9px 20px", borderRadius: "10px", border: "none", background: "var(--gradient-secondary)", color: "white", fontSize: "12px", fontWeight: 700, cursor: "pointer", fontFamily: "var(--font-inter), sans-serif" }}>Passer au Pro</button>
+              </div>
+            </div>
+          )
         )}
 
         {/* 5. VENTES RECENTES */}

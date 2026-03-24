@@ -21,27 +21,37 @@ export default function SignupPage() {
     if (password !== confirm) { setError("Les mots de passe ne correspondent pas."); return; }
     if (password.length < 6) { setError("Le mot de passe doit contenir au moins 6 caractères."); return; }
     setLoading(true);
-    const supabase = createClient();
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
-    });
-    if (error) {
-      setError(error.message === "User already registered" ? "Un compte existe déjà avec cet email." : error.message);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      });
+      if (error) {
+        setError(error.message === "User already registered" ? "Un compte existe déjà avec cet email." : error.message);
+      } else {
+        setSuccess(true);
+      }
+    } catch {
+      setError("Une erreur est survenue. Réessayez.");
+    } finally {
       setLoading(false);
-    } else {
-      setSuccess(true);
     }
   }
 
   async function handleGoogle() {
     setGoogleLoading(true);
-    const supabase = createClient();
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
-    });
+    try {
+      const supabase = createClient();
+      await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: `${window.location.origin}/auth/callback` },
+      });
+    } catch {
+      setError("Connexion Google échouée. Réessayez.");
+      setGoogleLoading(false);
+    }
   }
 
   if (success) {
